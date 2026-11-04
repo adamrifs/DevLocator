@@ -115,3 +115,4 @@ export function initMainWorldBridge() {
 
   document.documentElement.setAttribute('data-devlocator-bridge-ready', 'true');
 }
+

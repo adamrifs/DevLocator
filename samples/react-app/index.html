@@ -37,7 +37,15 @@
 
     function SubmitButton({ label }) {
       return (
-        <button id="react-submit-btn" className="btn" type="submit">
+        <button
+          id="react-submit-btn"
+          className="btn"
+          type="submit"
+          data-devlocator-file="src/components/SubmitButton.jsx"
+          data-devlocator-line="8"
+          data-devlocator-column="5"
+          data-devlocator-component="SubmitButton"
+        >
           {label}
         </button>
       );
@@ -46,7 +54,14 @@
     function LoginForm() {
       const [email, setEmail] = React.useState('');
       return (
-        <div id="login-form-wrapper" className="card">
+        <div
+          id="login-form-wrapper"
+          className="card"
+          data-devlocator-file="src/components/LoginForm.jsx"
+          data-devlocator-line="24"
+          data-devlocator-column="5"
+          data-devlocator-component="LoginForm"
+        >
           <h3>User Authentication</h3>
           <form onSubmit={(e) => e.preventDefault()} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             <label>Email Address</label>

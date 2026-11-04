@@ -3,6 +3,7 @@
  * DOM hierarchy, and generating selectors.
  */
 import { detectFramework } from '../framework-detector/detect-framework.js';
+import { findSourceLocation } from '../source-locator/find-source.js';
 
 export const DEVLOCATOR_ROOT_ID = '__devlocator-inspector-root__';
 export const DEVLOCATOR_PANEL_HOST_ID = '__devlocator-panel-host__';
@@ -320,6 +321,14 @@ export async function extractElementDetails(element) {
     ? bridgeInfo
     : detectFramework(element);
 
+  // Source code location detection (Vite metadata, React _debugSource, Vue __file)
+  const sourceLoc = findSourceLocation(element);
+  const finalSourceFile = sourceLoc.file || frameworkInfo.sourceFile || null;
+  const finalLine = sourceLoc.line ?? frameworkInfo.lineNumber ?? null;
+  const finalColumn = sourceLoc.column ?? frameworkInfo.columnNumber ?? null;
+  const finalStrategy = sourceLoc.file ? sourceLoc.strategy : (frameworkInfo.sourceFile ? 'react-debug-source' : 'none');
+  const isSourceVerified = Boolean(finalSourceFile && (sourceLoc.verified || frameworkInfo.sourceFile));
+
   return {
     tagName,
     id,
@@ -343,11 +352,13 @@ export async function extractElementDetails(element) {
     textContent: (element.textContent || '').trim().slice(0, 150),
     childElementCount: element.childElementCount || 0,
     framework: frameworkInfo.framework,
-    componentName: frameworkInfo.componentName,
+    componentName: frameworkInfo.componentName || sourceLoc.componentName,
     componentHierarchy: frameworkInfo.componentHierarchy,
-    sourceFile: frameworkInfo.sourceFile,
-    lineNumber: frameworkInfo.lineNumber,
-    columnNumber: frameworkInfo.columnNumber,
+    sourceFile: finalSourceFile,
+    lineNumber: finalLine,
+    columnNumber: finalColumn,
+    sourceStrategy: finalStrategy,
+    sourceVerified: isSourceVerified,
     confidence: frameworkInfo.confidence,
     frameworkDetails: frameworkInfo.details,
   };

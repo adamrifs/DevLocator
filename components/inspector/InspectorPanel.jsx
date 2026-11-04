@@ -366,23 +366,127 @@ export default function InspectorPanel({
         {/* 5. SOURCE TAB */}
         {activeTab === 'source' && (
           <div className="space-y-3">
-            <div className="p-4 rounded-lg bg-slate-900/70 border border-slate-800 text-center space-y-2">
-              <FileCode className="w-8 h-8 text-amber-400 mx-auto opacity-70" />
-              <h4 className="text-xs font-semibold text-slate-200">
-                Original Source Location
-              </h4>
-              <p className="text-[11px] text-slate-400 leading-relaxed max-w-xs mx-auto">
-                No development source metadata found for this element.
-              </p>
-              <div className="inline-block mt-2 px-2.5 py-1 text-[10px] font-medium bg-slate-800 text-amber-300 rounded border border-slate-700">
-                Phase 5: Vite Plugin &amp; Source Maps
-              </div>
-            </div>
+            {details.sourceFile ? (
+              <div className="p-3.5 rounded-lg bg-slate-900/80 border border-slate-800 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+                    Source Code Location
+                  </span>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                    details.sourceVerified
+                      ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                      : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                  }`}>
+                    {details.sourceVerified ? 'Verified' : 'Approximate'}
+                  </span>
+                </div>
 
-            <div className="p-3 rounded-lg bg-slate-900/40 border border-slate-800 flex items-center justify-between text-xs">
-              <span className="text-slate-400">Target Code Editor:</span>
-              <span className="font-semibold text-sky-300 capitalize">{ide}</span>
-            </div>
+                {/* Source File */}
+                <div className="pt-2 border-t border-slate-800/80 space-y-1">
+                  <span className="text-[11px] text-slate-400 block">File Path</span>
+                  <div className="flex items-center justify-between gap-2 p-2 rounded bg-slate-950/60 border border-slate-800">
+                    <code className="text-xs font-mono text-emerald-300 break-all" title={details.sourceFile}>
+                      {details.sourceFile}
+                    </code>
+                    <button
+                      type="button"
+                      onClick={() => copyToClipboard(details.sourceFile, 'source-file')}
+                      className="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-white transition-colors shrink-0"
+                      title="Copy File Path"
+                    >
+                      {copiedKey === 'source-file' ? (
+                        <Check className="w-3.5 h-3.5 text-emerald-400" />
+                      ) : (
+                        <Copy className="w-3.5 h-3.5" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Line and Column */}
+                <div className="grid grid-cols-2 gap-2 pt-1">
+                  <div className="p-2 rounded bg-slate-950/40 border border-slate-800">
+                    <span className="text-[10px] text-slate-400 block uppercase">Line Number</span>
+                    <span className="text-xs font-mono font-bold text-sky-400">
+                      {details.lineNumber ? `Line ${details.lineNumber}` : 'Unknown'}
+                    </span>
+                  </div>
+                  <div className="p-2 rounded bg-slate-950/40 border border-slate-800">
+                    <span className="text-[10px] text-slate-400 block uppercase">Column</span>
+                    <span className="text-xs font-mono font-bold text-sky-400">
+                      {details.columnNumber ? `Col ${details.columnNumber}` : 'Unknown'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Detection Strategy */}
+                <div className="flex items-center justify-between pt-2 border-t border-slate-800/80 text-xs">
+                  <span className="text-slate-400">Strategy:</span>
+                  <span className="font-mono text-slate-300 text-[11px]">
+                    {details.sourceStrategy === 'vite-plugin'
+                      ? 'Vite Plugin Metadata'
+                      : details.sourceStrategy === 'react-debug-source'
+                      ? 'React Fiber Debug Source'
+                      : details.sourceStrategy === 'vue-file'
+                      ? 'Vue SFC File'
+                      : 'Source Map'}
+                  </span>
+                </div>
+
+                {/* Target Editor Action */}
+                <div className="pt-2 border-t border-slate-800/80 space-y-2">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-slate-400">Target Editor:</span>
+                    <span className="font-semibold text-sky-300 capitalize">{ide}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const locationStr = `${details.sourceFile}:${details.lineNumber || 1}:${details.columnNumber || 1}`;
+                      copyToClipboard(locationStr, 'ide-location');
+                    }}
+                    className="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-sky-500 hover:bg-sky-400 text-white font-semibold text-xs transition-colors shadow-md shadow-sky-950/50"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                    <span>Open in {ide.charAt(0).toUpperCase() + ide.slice(1)}</span>
+                  </button>
+                  {copiedKey === 'ide-location' && (
+                    <span className="text-[11px] text-emerald-400 text-center block">
+                      Target location copied for IDE launch!
+                    </span>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="p-4 rounded-lg bg-slate-900/70 border border-slate-800 text-center space-y-2">
+                  <FileCode className="w-8 h-8 text-amber-400 mx-auto opacity-70" />
+                  <h4 className="text-xs font-semibold text-slate-200">
+                    Source Location Metadata Not Available
+                  </h4>
+                  <p className="text-[11px] text-slate-400 leading-relaxed max-w-xs mx-auto">
+                    This element does not have DevLocator compilation metadata or React Fiber <code className="text-amber-300 font-mono">_debugSource</code> attached.
+                  </p>
+                </div>
+
+                <div className="p-3 rounded-lg bg-slate-900/40 border border-slate-800 space-y-2 text-xs">
+                  <span className="text-[11px] font-semibold text-slate-300 block">
+                    How to enable 1-click source jump:
+                  </span>
+                  <p className="text-[11px] text-slate-400 leading-relaxed">
+                    Add the DevLocator plugin to your <code className="text-sky-300 font-mono">vite.config.js</code> during development:
+                  </p>
+                  <pre className="p-2 rounded bg-slate-950 border border-slate-800/80 font-mono text-[10px] text-sky-300 overflow-x-auto">
+                    <code>{`// vite.config.js\nimport devlocator from './integrations/vite-plugin';\n\nexport default {\n  plugins: [devlocator()],\n};`}</code>
+                  </pre>
+                </div>
+
+                <div className="p-3 rounded-lg bg-slate-900/40 border border-slate-800 flex items-center justify-between text-xs">
+                  <span className="text-slate-400">Target Code Editor:</span>
+                  <span className="font-semibold text-sky-300 capitalize">{ide}</span>
+                </div>
+              </>
+            )}
           </div>
         )}
       </div>
