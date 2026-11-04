@@ -4,6 +4,6 @@
   "path": "/home/adam/Documents/DevLocator/native-companion/devlocator_host.py",
   "type": "stdio",
   "allowed_origins": [
-    "chrome-extension://*/"
+    "chrome-extension://ijpfnklnedappeonjbbkcplejdbmofke/"
   ]
 }

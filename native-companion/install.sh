@@ -9,8 +9,9 @@ MANIFEST_TEMPLATE="$SCRIPT_DIR/com.devlocator.companion.json"
 
 chmod +x "$PYTHON_SCRIPT"
 
-# Extension ID can optionally be passed as the first argument
-EXTENSION_ID="${1:-*}"
+# Fixed Extension ID generated from manifest key
+DEFAULT_EXTENSION_ID="ijpfnklnedappeonjbbkcplejdbmofke"
+EXTENSION_ID="${1:-$DEFAULT_EXTENSION_ID}"
 
 echo "=========================================="
 echo "DevLocator Native Companion Installer"
@@ -60,3 +61,4 @@ else
   echo "Warning: No standard browser configuration folders found in ~/.config."
 fi
 echo "=========================================="
+

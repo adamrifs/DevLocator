@@ -71,3 +71,4 @@ export function getEditorCliCommand(ide, filePath, line = 1, column = 1) {
       return `antigravity -g "${location}"`;
   }
 }
+

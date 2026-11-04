@@ -129,24 +129,39 @@ def launch_editor(clean_payload):
     column = clean_payload['column']
 
     binary = find_executable(ide)
-    if not binary:
-        return False, f"Could not find executable for '{ide}' in system PATH or standard paths. Please verify '{ide}' is installed."
+    if binary:
+        # Format location argument: --goto <file>:<line>:<column>
+        location_arg = f"{file_path}:{line}:{column}"
+        cmd = [binary, '--goto', location_arg]
 
-    # Format location argument: --goto <file>:<line>:<column>
-    location_arg = f"{file_path}:{line}:{column}"
-    cmd = [binary, '--goto', location_arg]
+        try:
+            subprocess.Popen(
+                cmd,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                start_new_session=True,
+            )
+            return True, f"Successfully launched {ide} at {os.path.basename(file_path)}:{line}:{column}"
+        except Exception as e:
+            pass
 
-    try:
-        # Launch editor process detached from standard streams
-        subprocess.Popen(
-            cmd,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-            start_new_session=True,
-        )
-        return True, f"Successfully launched {ide} at {os.path.basename(file_path)}:{line}:{column}"
-    except Exception as e:
-        return False, f"Failed to execute command '{' '.join(cmd)}': {str(e)}"
+    # Fallback to xdg-open system URL protocol
+    xdg_bin = shutil.which('xdg-open')
+    if xdg_bin:
+        url_scheme = ide
+        url = f"{url_scheme}://file{file_path}:{line}:{column}"
+        try:
+            subprocess.Popen(
+                [xdg_bin, url],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                start_new_session=True,
+            )
+            return True, f"Dispatched {ide} URL protocol handler ({url})"
+        except Exception:
+            pass
+
+    return False, f"Could not find executable for '{ide}' in PATH or registered URL handler. Command copied: {ide} -g {file_path}:{line}:{column}"
 
 def main():
     while True:
@@ -167,3 +182,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
