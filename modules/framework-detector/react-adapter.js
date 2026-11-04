@@ -5,72 +5,69 @@
  */
 
 /**
- * Checks if React is present on the page.
+ * Checks if React is present on the page or element.
  * @param {Element} element
  * @returns {boolean}
  */
 export function isReactElement(element) {
   if (!element || !(element instanceof Element)) return false;
 
-  // Check for React Fiber keys on element
-  const keys = Object.keys(element);
-  const hasFiberKey = keys.some(
-    (key) => key.startsWith('__reactFiber$') || key.startsWith('__reactInternalInstance$')
-  );
-  if (hasFiberKey) return true;
-
-  // Check for React DOM markers
-  if (element.hasAttribute('data-reactroot') || element.hasAttribute('data-reactid')) {
+  // 1. Direct Fiber node check on element or ancestors
+  if (getReactFiber(element)) {
     return true;
   }
 
-  // Check root container or Next.js marker
-  if (document.querySelector('[data-reactroot], #__next, #root[_reactRootContainer]')) {
+  // 2. React DOM markers in DOM
+  if (
+    element.hasAttribute('data-reactroot') ||
+    element.hasAttribute('data-reactid') ||
+    element.closest('[data-reactroot], [data-reactid]')
+  ) {
     return true;
   }
 
-  // Check if ancestor has fiber key
-  let current = element.parentElement;
-  let depth = 0;
-  while (current && depth < 5) {
-    if (Object.keys(current).some((k) => k.startsWith('__reactFiber$') || k.startsWith('__reactInternalInstance$'))) {
+  // 3. Next.js and typical React root containers
+  if (
+    document.getElementById('__next') ||
+    document.querySelector('script#__NEXT_DATA__') ||
+    document.querySelector('[data-reactroot]') ||
+    document.querySelector('#root[_reactRootContainer]')
+  ) {
+    return true;
+  }
+
+  // 4. React DevTools hook present in window
+  if (typeof window !== 'undefined' && window.__REACT_DEVTOOLS_GLOBAL_HOOK__) {
+    const hook = window.__REACT_DEVTOOLS_GLOBAL_HOOK__;
+    if (hook.renderers && (hook.renderers.size > 0 || Object.keys(hook.renderers).length > 0)) {
       return true;
     }
-    current = current.parentElement;
-    depth++;
   }
 
   return false;
 }
 
 /**
- * Retrieves the React Fiber node attached to a DOM element.
+ * Retrieves the React Fiber node attached to a DOM element or its ancestors.
  * @param {Element} element
  * @returns {object|null}
  */
 export function getReactFiber(element) {
-  if (!element) return null;
+  if (!element || !(element instanceof Element)) return null;
 
-  const keys = Object.keys(element);
-  const fiberKey = keys.find(
-    (key) => key.startsWith('__reactFiber$') || key.startsWith('__reactInternalInstance$')
-  );
-
-  if (fiberKey) {
-    return element[fiberKey];
-  }
-
-  // Try checking parent elements if this DOM node is a text wrapper or simple child
-  let current = element.parentElement;
+  let current = element;
   let depth = 0;
-  while (current && depth < 4) {
-    const parentKeys = Object.keys(current);
-    const parentFiberKey = parentKeys.find(
-      (k) => k.startsWith('__reactFiber$') || k.startsWith('__reactInternalInstance$')
+
+  while (current && depth < 15) {
+    const keys = Object.keys(current);
+    const fiberKey = keys.find(
+      (key) => key.startsWith('__reactFiber$') || key.startsWith('__reactInternalInstance$')
     );
-    if (parentFiberKey) {
-      return current[parentFiberKey];
+
+    if (fiberKey && current[fiberKey]) {
+      return current[fiberKey];
     }
+
     current = current.parentElement;
     depth++;
   }
@@ -84,9 +81,9 @@ export function getReactFiber(element) {
  * @returns {string|null}
  */
 export function getComponentNameFromFiber(fiber) {
-  if (!fiber || !fiber.type) return null;
+  if (!fiber) return null;
 
-  const { type } = fiber;
+  const { type, elementType } = fiber;
 
   // String types are native HTML elements ('div', 'button', etc.)
   if (typeof type === 'string') {
@@ -99,7 +96,7 @@ export function getComponentNameFromFiber(fiber) {
   }
 
   // React.memo or React.forwardRef or Special Types
-  if (typeof type === 'object') {
+  if (typeof type === 'object' && type !== null) {
     if (type.displayName) return type.displayName;
     if (type.name) return type.name;
 
@@ -117,6 +114,11 @@ export function getComponentNameFromFiber(fiber) {
         return type.type.displayName || type.type.name;
       }
     }
+  }
+
+  // Check elementType fallback
+  if (typeof elementType === 'function') {
+    return elementType.displayName || elementType.name || null;
   }
 
   return null;
@@ -184,16 +186,23 @@ export function detectReact(element) {
   const fiber = getReactFiber(element);
   const { componentName, hierarchy, debugSource } = getComponentInfoFromFiber(fiber);
 
+  let finalComponentName = componentName;
+  if (!finalComponentName && hierarchy.length > 0) {
+    finalComponentName = hierarchy[hierarchy.length - 1];
+  } else if (!finalComponentName) {
+    finalComponentName = isNextJs ? 'NextPage' : 'ReactRoot';
+  }
+
   let confidence = 'partial';
-  if (componentName && debugSource?.fileName) {
+  if (debugSource?.fileName) {
     confidence = 'high';
   } else if (!componentName) {
-    confidence = 'low';
+    confidence = 'partial';
   }
 
   return {
     framework: isNextJs ? 'Next.js (React)' : 'React',
-    componentName: componentName || null,
+    componentName: finalComponentName,
     componentHierarchy: hierarchy.length > 0 ? hierarchy : null,
     sourceFile: debugSource?.fileName || null,
     lineNumber: debugSource?.lineNumber || null,

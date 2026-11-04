@@ -228,6 +228,41 @@ export function getFormattedHTML(element) {
 }
 
 /**
+ * Queries framework metadata from the main-world bridge via synchronous CustomEvent dispatch.
+ * @param {Element} element
+ * @returns {object|null}
+ */
+export function queryMainWorldFramework(element) {
+  if (!element || !(element instanceof Element)) return null;
+
+  let result = null;
+  const handleResponse = (event) => {
+    try {
+      if (typeof event.detail === 'string') {
+        result = JSON.parse(event.detail);
+      } else if (event.detail) {
+        result = event.detail;
+      }
+    } catch (e) {
+      // Ignore parse error
+    }
+  };
+
+  window.addEventListener('__DEVLOCATOR_INSPECT_RESPONSE__', handleResponse, { once: true });
+
+  element.dispatchEvent(
+    new CustomEvent('__DEVLOCATOR_INSPECT_REQUEST__', {
+      bubbles: true,
+      cancelable: true,
+    })
+  );
+
+  window.removeEventListener('__DEVLOCATOR_INSPECT_RESPONSE__', handleResponse);
+
+  return result;
+}
+
+/**
  * Extracts comprehensive details from a DOM element.
  * @param {Element} element
  * @returns {object|null}
@@ -255,7 +290,11 @@ export function extractElementDetails(element) {
   const domHierarchy = getDomHierarchy(element);
   const outerHTML = getFormattedHTML(element);
 
-  const frameworkInfo = detectFramework(element);
+  // Try main-world bridge first for direct access to Fiber/Vue/Angular JS objects, then fallback to local detection
+  const bridgeInfo = queryMainWorldFramework(element);
+  const frameworkInfo = (bridgeInfo && bridgeInfo.framework !== 'Vanilla HTML')
+    ? bridgeInfo
+    : detectFramework(element);
 
   return {
     tagName,
