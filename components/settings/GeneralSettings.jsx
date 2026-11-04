@@ -56,3 +56,4 @@ export default function GeneralSettings({ settings, onUpdateSettings }) {
     </div>
   );
 }
+

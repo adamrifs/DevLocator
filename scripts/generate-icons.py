@@ -61,3 +61,4 @@ for size in [16, 32, 48, 128]:
     with open(f'/home/adam/Documents/DevLocator/public/icons/icon-{size}.png', 'wb') as f:
         f.write(data)
 print("Icons generated successfully!")
+

@@ -57,6 +57,19 @@ export default function App() {
     }
 
     checkTabStatus();
+
+    // Listen for runtime status changes
+    const messageListener = (message) => {
+      if (message && message.type === MESSAGE_TYPES.INSPECTION_STATUS_CHANGED) {
+        setIsInspecting(Boolean(message.isInspecting));
+        setStatusMessage(message.isInspecting ? 'Inspection active on this page' : 'Ready to inspect');
+      }
+    };
+
+    chrome.runtime.onMessage?.addListener(messageListener);
+    return () => {
+      chrome.runtime.onMessage?.removeListener(messageListener);
+    };
   }, []);
 
   const handleToggleInspection = async () => {
@@ -297,3 +310,4 @@ export default function App() {
     </div>
   );
 }
+

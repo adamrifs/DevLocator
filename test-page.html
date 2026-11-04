@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DevLocator Test Ground</title>
+  <style>
+    :root {
+      --bg: #0b0f19;
+      --card-bg: #111827;
+      --border: #1f2937;
+      --text: #f9fafb;
+      --muted: #9ca3af;
+      --accent: #38bdf8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      padding: 40px 20px;
+      line-height: 1.5;
+    }
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    header {
+      margin-bottom: 32px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 20px;
+    }
+    h1 { font-size: 28px; margin-bottom: 8px; color: var(--accent); }
+    p.subtitle { color: var(--muted); font-size: 14px; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+    }
+    .card h2 { font-size: 18px; margin-bottom: 12px; }
+    .card p { font-size: 14px; color: var(--muted); margin-bottom: 16px; }
+    button.btn-primary {
+      background: #0284c7;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+    button.btn-primary:hover { background: #0369a1; }
+    button.btn-secondary {
+      background: #374151;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    a.link {
+      color: #38bdf8;
+      text-decoration: underline;
+    }
+    .form-group {
+      margin-bottom: 14px;
+    }
+    label {
+      display: block;
+      font-size: 13px;
+      margin-bottom: 6px;
+      color: var(--muted);
+    }
+    input[type="text"], input[type="email"] {
+      width: 100%;
+      padding: 8px 12px;
+      background: #1f2937;
+      border: 1px solid #374151;
+      border-radius: 6px;
+      color: white;
+    }
+    .badge-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .badge {
+      font-size: 12px;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      background: #1e293b;
+      border: 1px solid #334155;
+      color: #94a3b8;
+    }
+    ul.item-list {
+      list-style: none;
+    }
+    ul.item-list li {
+      padding: 8px 12px;
+      background: #1f2937;
+      border-radius: 6px;
+      margin-bottom: 8px;
+      font-size: 14px;
+      display: flex;
+      justify-content: space-between;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header id="main-header">
+      <h1 id="page-title">DevLocator Test Ground</h1>
+      <p class="subtitle">Use this page to test DevLocator's Element Picker, Highlighter, and Tooltip</p>
+    </header>
+
+    <div class="grid">
+      <!-- Card 1: Interactive Buttons & Click Prevention -->
+      <div id="interactive-card" class="card">
+        <h2>Interactive Elements</h2>
+        <p>Clicking these in inspection mode must NOT trigger alerts or navigation.</p>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+          <button id="alert-button" class="btn-primary" onclick="alert('Website click triggered!')">
+            Test Button (Has Alert)
+          </button>
+          <a id="external-link" class="link" href="https://example.com" target="_blank" style="align-self: center;">
+            External Link
+          </a>
+        </div>
+      </div>
+
+      <!-- Card 2: Nested Elements & Form -->
+      <div id="form-card" class="card">
+        <h2>Nested Form Components</h2>
+        <p>Inspect form labels, inputs, and wrappers.</p>
+        <form id="sample-form" onsubmit="event.preventDefault();">
+          <div class="form-group">
+            <label for="username-input">Username</label>
+            <input id="username-input" type="text" placeholder="johndoe" value="developer_42" />
+          </div>
+          <div class="form-group">
+            <label for="email-input">Email Address</label>
+            <input id="email-input" type="email" placeholder="you@domain.com" />
+          </div>
+          <button id="submit-btn" class="btn-secondary" type="submit">Submit Form</button>
+        </form>
+      </div>
+
+      <!-- Card 3: Lists & Badges -->
+      <div id="list-card" class="card">
+        <h2>Badges &amp; Lists</h2>
+        <p>Testing deep DOM hierarchy inspection.</p>
+        <div class="badge-row" style="margin-bottom: 16px;">
+          <span class="badge">React 18</span>
+          <span class="badge">Tailwind</span>
+          <span class="badge">Vite</span>
+          <span class="badge">Chrome MV3</span>
+        </div>
+        <ul id="task-list" class="item-list">
+          <li class="task-item"><span>Element Picker</span><span style="color:#10b981;">Done</span></li>
+          <li class="task-item"><span>Highlighter Overlay</span><span style="color:#10b981;">Done</span></li>
+          <li class="task-item"><span>Tooltip &amp; Dimensions</span><span style="color:#10b981;">Done</span></li>
+          <li class="task-item"><span>Click Interception</span><span style="color:#10b981;">Done</span></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

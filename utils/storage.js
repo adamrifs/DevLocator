@@ -52,3 +52,4 @@ export async function saveSettings(partialSettings) {
     return { ...DEFAULT_SETTINGS, ...partialSettings };
   }
 }
+

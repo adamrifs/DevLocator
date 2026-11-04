@@ -73,3 +73,4 @@ export default defineBackground(() => {
     return false;
   });
 });
+

@@ -21,3 +21,4 @@ export function isValidMessage(message) {
   }
   return Object.values(MESSAGE_TYPES).includes(message.type);
 }
+

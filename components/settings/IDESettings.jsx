@@ -67,3 +67,4 @@ export default function IDESettings({ selectedIde, onSelectIde }) {
     </div>
   );
 }
+
