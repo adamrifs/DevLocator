@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sample 4: Vanilla HTML/JS Application</title>
+  <style>
+    body {
+      background: #0b0f19;
+      color: #f8fafc;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      margin: 0;
+      padding: 30px;
+    }
+    .container { max-width: 800px; margin: 0 auto; }
+    .card { background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 18px; margin-bottom: 20px; }
+    .btn { background: #475569; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; }
+    input { background: #0f172a; border: 1px solid #334155; color: white; padding: 8px; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header class="card" style="display: flex; justify-content: space-between; align-items: center;">
+      <h2 style="margin: 0; color: #cbd5e1;">DevLocator Vanilla HTML Ground</h2>
+      <span style="font-size: 12px; background: #334155; color: #e2e8f0; padding: 4px 8px; border-radius: 4px;">HTML5</span>
+    </header>
+
+    <main>
+      <section class="card">
+        <h3>Standard Semantic DOM</h3>
+        <p style="color: #94a3b8; font-size: 14px;">Plain HTML elements with no framework wrappers.</p>
+        <button id="vanilla-btn" class="btn">Standard Button</button>
+      </section>
+
+      <section class="card">
+        <h3>Form Controls</h3>
+        <form id="vanilla-form" onsubmit="event.preventDefault();">
+          <label for="vanilla-search" style="display: block; margin-bottom: 6px; font-size: 13px;">Search Query</label>
+          <input id="vanilla-search" type="text" placeholder="Type here..." />
+        </form>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

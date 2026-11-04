@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sample 2: Vue Application</title>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <style>
+    body {
+      background: #0b0f19;
+      color: #f8fafc;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      margin: 0;
+      padding: 30px;
+    }
+    .container { max-width: 800px; margin: 0 auto; }
+    .card { background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 18px; margin-bottom: 20px; }
+    .btn { background: #10b981; color: #042f2e; font-weight: 600; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; }
+    .item { padding: 8px; background: #0f172a; margin-bottom: 6px; border-radius: 4px; display: flex; justify-content: space-between; }
+  </style>
+</head>
+<body>
+  <div id="app" data-v-app></div>
+
+  <script>
+    const { createApp, ref } = Vue;
+
+    const AppHeader = {
+      name: 'AppHeader',
+      props: ['title'],
+      template: `
+        <header class="card" style="display: flex; justify-content: space-between; align-items: center;" data-v-header>
+          <h2 style="margin: 0; color: #10b981;">{{ title }}</h2>
+          <span style="font-size: 12px; background: #065f46; color: #a7f3d0; padding: 4px 8px; border-radius: 4px;">Vue 3</span>
+        </header>
+      `
+    };
+
+    const CounterButton = {
+      name: 'CounterButton',
+      emits: ['increment'],
+      template: `
+        <button id="vue-counter-btn" class="btn" @click="$emit('increment')" data-v-btn>
+          <slot></slot>
+        </button>
+      `
+    };
+
+    const CounterCard = {
+      name: 'CounterCard',
+      components: { CounterButton },
+      setup() {
+        const count = ref(0);
+        return { count };
+      },
+      template: `
+        <div id="vue-counter-card" class="card" data-v-card>
+          <h3>Reactive State Component</h3>
+          <p style="color: #94a3b8; font-size: 14px;">Current Count: <strong style="color: #38bdf8;">{{ count }}</strong></p>
+          <CounterButton @increment="count++">Increment Counter</CounterButton>
+        </div>
+      `
+    };
+
+    const UserRow = {
+      name: 'UserRow',
+      props: ['user'],
+      template: `
+        <li class="item" data-v-row>
+          <span>{{ user.name }}</span>
+          <span style="color: #10b981;">{{ user.role }}</span>
+        </li>
+      `
+    };
+
+    const UserList = {
+      name: 'UserList',
+      components: { UserRow },
+      setup() {
+        const users = ref([
+          { id: 1, name: 'Alice Smith', role: 'Staff Engineer' },
+          { id: 2, name: 'Bob Jones', role: 'Frontend Lead' },
+        ]);
+        return { users };
+      },
+      template: `
+        <div class="card" data-v-list>
+          <h3>Team Members</h3>
+          <ul style="list-style: none; padding: 0; margin: 0;">
+            <UserRow v-for="user in users" :key="user.id" :user="user" />
+          </ul>
+        </div>
+      `
+    };
+
+    const App = {
+      name: 'VueRootApp',
+      components: { AppHeader, CounterCard, UserList },
+      template: `
+        <div class="container">
+          <AppHeader title="DevLocator Vue Test Application" />
+          <CounterCard />
+          <UserList />
+        </div>
+      `
+    };
+
+    createApp(App).mount('#app');
+  </script>
+</body>
+</html>

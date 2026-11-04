@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sample 3: Angular Application</title>
+  <style>
+    body {
+      background: #0b0f19;
+      color: #f8fafc;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      margin: 0;
+      padding: 30px;
+    }
+    .container { max-width: 800px; margin: 0 auto; }
+    .card { background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 18px; margin-bottom: 20px; }
+    .btn { background: #e11d48; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; }
+    .item { padding: 8px; background: #0f172a; margin-bottom: 6px; border-radius: 4px; display: flex; justify-content: space-between; }
+  </style>
+</head>
+<body>
+  <!-- Angular Root Component -->
+  <app-root ng-version="17.2.1" _nghost-app-c0 class="container" style="display: block;">
+    <!-- Angular Header Component -->
+    <app-navbar _ngcontent-app-c0 _nghost-app-c1 style="display: block;">
+      <header _ngcontent-app-c1 class="card" style="display: flex; justify-content: space-between; align-items: center;">
+        <h2 _ngcontent-app-c1 style="margin: 0; color: #f43f5e;">DevLocator Angular Test Application</h2>
+        <span _ngcontent-app-c1 style="font-size: 12px; background: #881337; color: #fecdd3; padding: 4px 8px; border-radius: 4px;">Angular 17</span>
+      </header>
+    </app-navbar>
+
+    <!-- Angular Dashboard Component -->
+    <app-dashboard _ngcontent-app-c0 _nghost-app-c2 style="display: block;">
+      <div _ngcontent-app-c2 class="card">
+        <h3 _ngcontent-app-c2>Angular Services &amp; Directives</h3>
+        <p _ngcontent-app-c2 style="color: #94a3b8; font-size: 14px;">Emulated View Encapsulation via <code>_nghost</code> and <code>_ngcontent</code>.</p>
+        <button id="ng-action-btn" _ngcontent-app-c2 class="btn" ng-reflect-router-link="/details">
+          Angular Action Button
+        </button>
+      </div>
+
+      <!-- Nested Angular User Profile Component -->
+      <app-user-profile _ngcontent-app-c2 _nghost-app-c3 style="display: block;">
+        <div _ngcontent-app-c3 class="card">
+          <h3 _ngcontent-app-c3>User Profile Component</h3>
+          <div _ngcontent-app-c3 class="item">
+            <span _ngcontent-app-c3>Full Name</span>
+            <strong _ngcontent-app-c3 style="color: #38bdf8;">Alexander Pierce</strong>
+          </div>
+          <div _ngcontent-app-c3 class="item">
+            <span _ngcontent-app-c3>Department</span>
+            <span _ngcontent-app-c3 style="color: #10b981;">Architecture &amp; Cloud</span>
+          </div>
+        </div>
+      </app-user-profile>
+    </app-dashboard>
+  </app-root>
+</body>
+</html>

@@ -266,18 +266,100 @@ export default function InspectorPanel({
         {/* 4. COMPONENT TAB */}
         {activeTab === 'component' && (
           <div className="space-y-3">
-            <div className="p-4 rounded-lg bg-slate-900/70 border border-slate-800 text-center space-y-2">
-              <Layers className="w-8 h-8 text-sky-400 mx-auto opacity-70" />
-              <h4 className="text-xs font-semibold text-slate-200">
-                Framework Component Detection
-              </h4>
-              <p className="text-[11px] text-slate-400 leading-relaxed max-w-xs mx-auto">
-                No framework component metadata detected on this element.
-              </p>
-              <div className="inline-block mt-2 px-2.5 py-1 text-[10px] font-medium bg-slate-800 text-sky-300 rounded border border-slate-700">
-                Phase 4: React &bull; Vue &bull; Angular Adapters
+            {/* Framework Identification Card */}
+            <div className="p-3.5 rounded-lg bg-slate-900/80 border border-slate-800 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+                  Detected Framework
+                </span>
+                <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
+                  details.framework?.includes('React')
+                    ? 'bg-sky-500/20 text-sky-400 border border-sky-500/30'
+                    : details.framework?.includes('Vue')
+                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                    : details.framework?.includes('Angular')
+                    ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+                    : 'bg-slate-800 text-slate-300 border border-slate-700'
+                }`}>
+                  {details.framework || 'Vanilla HTML'}
+                </span>
+              </div>
+
+              {/* Component Name */}
+              {details.componentName ? (
+                <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between">
+                  <div>
+                    <span className="text-[11px] text-slate-400 block">Component Name</span>
+                    <span className="text-sm font-mono font-bold text-sky-300">
+                      &lt;{details.componentName} /&gt;
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => copyToClipboard(details.componentName, 'comp-name')}
+                    className="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"
+                    title="Copy Component Name"
+                  >
+                    {copiedKey === 'comp-name' ? (
+                      <Check className="w-3.5 h-3.5 text-emerald-400" />
+                    ) : (
+                      <Copy className="w-3.5 h-3.5" />
+                    )}
+                  </button>
+                </div>
+              ) : (
+                <div className="pt-2 border-t border-slate-800/80 text-xs text-slate-400 italic">
+                  {details.framework === 'Vanilla HTML'
+                    ? 'Standard DOM element (no framework component wrapper).'
+                    : 'No specific component name resolved for this DOM node.'}
+                </div>
+              )}
+
+              {/* Confidence Badge */}
+              <div className="flex items-center justify-between pt-2 border-t border-slate-800/80 text-xs">
+                <span className="text-slate-400">Detection Confidence:</span>
+                <span className={`capitalize font-medium ${
+                  details.confidence === 'high'
+                    ? 'text-emerald-400'
+                    : details.confidence === 'partial'
+                    ? 'text-sky-400'
+                    : 'text-amber-400'
+                }`}>
+                  {details.confidence || 'partial'}
+                </span>
               </div>
             </div>
+
+            {/* Component Hierarchy */}
+            {details.componentHierarchy && details.componentHierarchy.length > 0 && (
+              <div className="p-3 rounded-lg bg-slate-900/60 border border-slate-800 space-y-2">
+                <span className="text-xs font-semibold text-slate-300 block">
+                  Component Hierarchy
+                </span>
+                <div className="space-y-1 font-mono text-xs">
+                  {details.componentHierarchy.map((comp, idx) => {
+                    const isTarget = idx === details.componentHierarchy.length - 1;
+                    return (
+                      <div
+                        key={`${comp}-${idx}`}
+                        style={{ paddingLeft: `${idx * 10}px` }}
+                        className={`flex items-center gap-1.5 py-0.5 px-1.5 rounded ${
+                          isTarget ? 'bg-sky-500/15 text-sky-300 font-bold' : 'text-slate-400'
+                        }`}
+                      >
+                        <span className="text-slate-600">&bull;</span>
+                        <span>&lt;{comp} /&gt;</span>
+                        {isTarget && (
+                          <span className="ml-auto text-[9px] uppercase font-sans font-bold px-1 rounded bg-sky-500/20 text-sky-400">
+                            Target
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -321,3 +403,4 @@ export default function InspectorPanel({
     </div>
   );
 }
+

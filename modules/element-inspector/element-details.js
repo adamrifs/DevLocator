@@ -2,6 +2,7 @@
  * Utility functions for extracting metadata from DOM elements, computed styles,
  * DOM hierarchy, and generating selectors.
  */
+import { detectFramework } from '../framework-detector/detect-framework.js';
 
 export const DEVLOCATOR_ROOT_ID = '__devlocator-inspector-root__';
 export const DEVLOCATOR_PANEL_HOST_ID = '__devlocator-panel-host__';
@@ -254,6 +255,8 @@ export function extractElementDetails(element) {
   const domHierarchy = getDomHierarchy(element);
   const outerHTML = getFormattedHTML(element);
 
+  const frameworkInfo = detectFramework(element);
+
   return {
     tagName,
     id,
@@ -276,11 +279,13 @@ export function extractElementDetails(element) {
     attributes,
     textContent: (element.textContent || '').trim().slice(0, 150),
     childElementCount: element.childElementCount || 0,
-    // Framework and source location fields (ready for Phases 4 and 5)
-    framework: null,
-    componentName: null,
-    sourceFile: null,
-    lineNumber: null,
-    columnNumber: null,
+    framework: frameworkInfo.framework,
+    componentName: frameworkInfo.componentName,
+    componentHierarchy: frameworkInfo.componentHierarchy,
+    sourceFile: frameworkInfo.sourceFile,
+    lineNumber: frameworkInfo.lineNumber,
+    columnNumber: frameworkInfo.columnNumber,
+    confidence: frameworkInfo.confidence,
+    frameworkDetails: frameworkInfo.details,
   };
 }

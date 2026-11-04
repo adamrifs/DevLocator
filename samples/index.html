@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DevLocator Framework Test Suite</title>
+  <style>
+    body {
+      background: #0b0f19;
+      color: #f8fafc;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      margin: 0;
+      padding: 40px 20px;
+      line-height: 1.5;
+    }
+    .container { max-width: 800px; margin: 0 auto; }
+    h1 { color: #38bdf8; margin-bottom: 6px; }
+    p.lead { color: #94a3b8; font-size: 14px; margin-bottom: 30px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 18px; }
+    .card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 10px;
+      padding: 20px;
+      transition: border-color 0.2s, transform 0.2s;
+      text-decoration: none;
+      color: inherit;
+      display: block;
+    }
+    .card:hover { border-color: #38bdf8; transform: translateY(-2px); }
+    .card h3 { margin: 0 0 8px 0; font-size: 18px; display: flex; align-items: center; justify-content: space-between; }
+    .card p { margin: 0; color: #94a3b8; font-size: 13px; }
+    .badge { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 4px; }
+    .badge-react { background: rgba(56, 189, 248, 0.2); color: #38bdf8; }
+    .badge-vue { background: rgba(16, 185, 129, 0.2); color: #10b981; }
+    .badge-angular { background: rgba(244, 63, 94, 0.2); color: #f43f5e; }
+    .badge-vanilla { background: rgba(148, 163, 184, 0.2); color: #94a3b8; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>DevLocator Test Suite</h1>
+    <p class="lead">Click any sample application below to test framework detection and component hierarchy inspection with DevLocator.</p>
+
+    <div class="grid">
+      <a href="./react-app/index.html" class="card">
+        <h3>Sample 1: React 18 App <span class="badge badge-react">React</span></h3>
+        <p>Tests React Fiber inspection, nested component detection (&lt;LoginForm&gt;, &lt;SubmitButton&gt;), and component hierarchy trees.</p>
+      </a>
+
+      <a href="./vue-app/index.html" class="card">
+        <h3>Sample 2: Vue 3 App <span class="badge badge-vue">Vue 3</span></h3>
+        <p>Tests Vue component instances, reactive setup components (&lt;CounterCard&gt;, &lt;CounterButton&gt;), and scoped CSS detection.</p>
+      </a>
+
+      <a href="./angular-app/index.html" class="card">
+        <h3>Sample 3: Angular App <span class="badge badge-angular">Angular</span></h3>
+        <p>Tests Angular host elements, emulated view encapsulation (_nghost, _ngcontent), and component naming.</p>
+      </a>
+
+      <a href="./vanilla-app/index.html" class="card">
+        <h3>Sample 4: Vanilla HTML <span class="badge badge-vanilla">HTML5</span></h3>
+        <p>Tests graceful fallback for standard DOM elements without framework wrappers.</p>
+      </a>
+    </div>
+  </div>
+</body>
+</html>

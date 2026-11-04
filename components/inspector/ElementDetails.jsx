@@ -29,6 +29,23 @@ export default function ElementDetails({ details }) {
     <div className="space-y-4">
       {/* Quick Selectors & Copy Card */}
       <div className="p-3 rounded-lg bg-slate-900/80 border border-slate-800 space-y-2">
+        {/* Framework & Component Header */}
+        <div className="flex items-center justify-between pb-1.5 border-b border-slate-800/80">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+              Framework:
+            </span>
+            <span className="text-xs font-semibold text-sky-400">
+              {details.framework || 'Vanilla HTML'}
+            </span>
+          </div>
+          {details.componentName && (
+            <span className="text-[11px] font-mono font-bold text-amber-300">
+              &lt;{details.componentName} /&gt;
+            </span>
+          )}
+        </div>
+
         {/* CSS Selector */}
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-1.5 text-xs text-slate-400 shrink-0">
@@ -183,3 +200,4 @@ export default function ElementDetails({ details }) {
     </div>
   );
 }
+
