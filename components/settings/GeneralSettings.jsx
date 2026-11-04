@@ -48,6 +48,21 @@ export default function GeneralSettings({ settings, onUpdateSettings }) {
         </div>
       </div>
 
+      {/* Hold Shift Toggle */}
+      <div className="pt-2 border-t border-slate-800">
+        <Toggle
+          label="Hold Shift to Inspect"
+          description="Press and hold Shift on any webpage to inspect elements under the cursor"
+          checked={settings.activationMode !== 'manual'}
+          onChange={(enabled) =>
+            onUpdateSettings({
+              activationMode: enabled ? 'hold_shift' : 'manual',
+              shortcut: enabled ? 'Hold Shift' : 'Alt+Shift+X',
+            })
+          }
+        />
+      </div>
+
       {/* Tooltip Toggle */}
       <div className="pt-2 border-t border-slate-800">
         <Toggle
@@ -123,9 +138,9 @@ export default function GeneralSettings({ settings, onUpdateSettings }) {
         </div>
         <div className="space-y-1.5 text-[11px] text-slate-400">
           <div className="flex items-center justify-between py-0.5">
-            <span>Toggle Inspection</span>
+            <span>Hold to Inspect</span>
             <kbd className="px-1.5 py-0.5 font-mono bg-slate-800 text-sky-300 rounded border border-slate-700">
-              {settings.shortcut || 'Alt+Shift+X'}
+              Hold Shift
             </kbd>
           </div>
           <div className="flex items-center justify-between py-0.5">
@@ -149,13 +164,13 @@ export default function GeneralSettings({ settings, onUpdateSettings }) {
           <div className="flex items-center justify-between py-0.5">
             <span>Confirm Selection</span>
             <kbd className="px-1.5 py-0.5 font-mono bg-slate-800 text-slate-300 rounded border border-slate-700">
-              Enter
+              Click / Enter
             </kbd>
           </div>
           <div className="flex items-center justify-between py-0.5">
-            <span>Exit / Cancel</span>
+            <span>Exit Inspection</span>
             <kbd className="px-1.5 py-0.5 font-mono bg-slate-800 text-slate-300 rounded border border-slate-700">
-              Esc
+              Release Shift / Esc
             </kbd>
           </div>
         </div>

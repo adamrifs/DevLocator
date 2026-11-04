@@ -344,19 +344,19 @@ export default function App() {
             {/* Quick Instructions & Keyboard Shortcut */}
             <div className={`space-y-2 pt-2 border-t ${isLight ? 'border-slate-200' : 'border-slate-800'}`}>
               <div className={`flex items-center justify-between text-xs ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
-                <span>Keyboard Toggle</span>
+                <span>Hold to Inspect</span>
                 <kbd className={`px-1.5 py-0.5 text-[11px] font-mono rounded border ${
                   isLight ? 'bg-slate-200 text-slate-800 border-slate-300' : 'bg-slate-800 text-sky-300 border-slate-700'
                 }`}>
-                  {settings.shortcut || 'Alt+Shift+X'}
+                  Hold Shift
                 </kbd>
               </div>
               <div className={`flex items-center justify-between text-xs ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
-                <span>Cancel Inspection</span>
+                <span>Exit Inspection</span>
                 <kbd className={`px-1.5 py-0.5 text-[11px] font-mono rounded border ${
                   isLight ? 'bg-slate-200 text-slate-800 border-slate-300' : 'bg-slate-800 text-slate-300 border-slate-700'
                 }`}>
-                  Esc
+                  Release Shift / Esc
                 </kbd>
               </div>
             </div>

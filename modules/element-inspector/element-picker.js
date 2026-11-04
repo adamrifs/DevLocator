@@ -124,7 +124,7 @@ export class ElementPicker {
         <span style="display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #38bdf8; box-shadow: 0 0 8px #38bdf8;"></span>
         <strong style="color: #38bdf8; font-weight: 600;">DevLocator</strong>
       </div>
-      <span style="color: #94a3b8; font-size: 11px;">Click / Enter to inspect &bull; &uarr;/&darr; Parent/Child &bull; &larr;/&rarr; Siblings &bull; <kbd style="background: rgba(255,255,255,0.1); padding: 1px 4px; border-radius: 3px; font-family: monospace;">Esc</kbd> to exit</span>
+      <span style="color: #94a3b8; font-size: 11px;">Hold Shift &bull; Click to inspect &bull; &uarr;/&darr; Parent/Child &bull; Release Shift / <kbd style="background: rgba(255,255,255,0.1); padding: 1px 4px; border-radius: 3px; font-family: monospace;">Esc</kbd></span>
       <button id="__devlocator-exit-btn__" type="button" style="
         background: rgba(244, 63, 94, 0.2);
         color: #f43f5e;

@@ -7,7 +7,8 @@ export const DEFAULT_SETTINGS = {
   theme: 'dark', // 'dark' | 'light'
   highlightColor: '#38bdf8',
   showTooltip: true,
-  shortcut: 'Alt+Shift+X',
+  shortcut: 'Hold Shift',
+  activationMode: 'hold_shift', // 'hold_shift' | 'manual'
   fillOpacity: 0.15,
 };
 

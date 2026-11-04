@@ -31,3 +31,4 @@ export default defineConfig({
 - Does **not** run in production builds (`vite build`), ensuring zero bundle impact.
 - Injects `data-devlocator-file`, `data-devlocator-line`, and `data-devlocator-column` attributes into JSX elements.
 - DevLocator reads these attributes to open the exact source file and line in your configured IDE (Antigravity, VS Code, Cursor).
+

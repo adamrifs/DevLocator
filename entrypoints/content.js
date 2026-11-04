@@ -7,6 +7,7 @@ import {
   DEVLOCATOR_PANEL_HOST_ID,
   DEVLOCATOR_ATTRIBUTE,
   extractElementDetails,
+  isDevLocatorElement,
 } from '../modules/element-inspector/element-details.js';
 import { getSettings, onSettingsChange } from '../utils/storage.js';
 import InspectorPanel from '../components/inspector/InspectorPanel.jsx';
@@ -21,6 +22,118 @@ export default defineContentScript({
     let currentSettings = null;
     let lastSelectedDetails = null;
     let currentSelectedElement = null;
+    let isShiftHeld = false;
+    const lastMousePos = { x: 0, y: 0 };
+
+    /**
+     * Checks if an element is a form input, textarea, or contenteditable.
+     */
+    function isInputOrEditable(element) {
+      if (!element || !(element instanceof Element)) return false;
+      const tag = element.tagName.toLowerCase();
+      if (tag === 'input' || tag === 'textarea' || tag === 'select') {
+        return true;
+      }
+      if (element.isContentEditable || element.getAttribute('contenteditable') === 'true') {
+        return true;
+      }
+      return Boolean(element.closest && element.closest('input, textarea, select, [contenteditable="true"]'));
+    }
+
+    // Passively track mouse coordinates on the page
+    window.addEventListener(
+      'mousemove',
+      (e) => {
+        lastMousePos.x = e.clientX;
+        lastMousePos.y = e.clientY;
+      },
+      { capture: true, passive: true }
+    );
+
+    // Global keydown: hold Shift to activate inspection mode
+    window.addEventListener(
+      'keydown',
+      (e) => {
+        if (e.key === 'Shift') {
+          // Do not re-trigger on repeated OS keydown events
+          if (e.repeat) return;
+
+          // Do not trigger if browser shortcut modifiers are held (e.g. Ctrl+Shift, Alt+Shift, Cmd+Shift)
+          if (e.ctrlKey || e.metaKey || e.altKey) return;
+
+          // Do not trigger if typing in an input or editable element
+          const active = document.activeElement;
+          if (active && isInputOrEditable(active)) return;
+          if (e.target && isInputOrEditable(e.target)) return;
+
+          // Check if user disabled hold_shift in settings
+          const activationMode = currentSettings?.activationMode || 'hold_shift';
+          if (activationMode === 'manual') return;
+
+          // Do not inspect if mouse is over DevLocator's own panel
+          if (lastMousePos.x > 0 && lastMousePos.y > 0) {
+            const elUnderCursor = document.elementFromPoint(lastMousePos.x, lastMousePos.y);
+            if (elUnderCursor && isDevLocatorElement(elUnderCursor)) {
+              return;
+            }
+          }
+
+          if (!picker || !picker.isActive) {
+            isShiftHeld = true;
+            startInspection(currentSettings);
+
+            // Immediately highlight element under current mouse position
+            if (picker && lastMousePos.x > 0 && lastMousePos.y > 0) {
+              const target = picker.getElementAtPoint(lastMousePos.x, lastMousePos.y);
+              if (
+                target &&
+                target !== document.documentElement &&
+                target !== document.body &&
+                !isDevLocatorElement(target)
+              ) {
+                picker.currentHovered = target;
+                picker.highlighter.highlight(target);
+              }
+            }
+          }
+        }
+      },
+      { capture: true }
+    );
+
+    // Global keyup: release Shift to stop inspection (if no element was locked/selected)
+    window.addEventListener(
+      'keyup',
+      (e) => {
+        if (e.key === 'Shift') {
+          if (isShiftHeld) {
+            isShiftHeld = false;
+            if (picker && picker.isActive) {
+              picker.stop();
+              chrome.runtime.sendMessage({
+                type: MESSAGE_TYPES.INSPECTION_STATUS_CHANGED,
+                isInspecting: false,
+              }).catch(() => {});
+            }
+          }
+        }
+      },
+      { capture: true }
+    );
+
+    // Cancel Shift inspection if window loses focus
+    window.addEventListener('blur', () => {
+      if (isShiftHeld) {
+        isShiftHeld = false;
+        if (picker && picker.isActive) {
+          picker.stop();
+          chrome.runtime.sendMessage({
+            type: MESSAGE_TYPES.INSPECTION_STATUS_CHANGED,
+            isInspecting: false,
+          }).catch(() => {});
+        }
+      }
+    });
 
     ensureMainWorldBridge();
 
@@ -195,6 +308,7 @@ export default defineContentScript({
       picker.start(
         // onSelect
         (element, details) => {
+          isShiftHeld = false;
           currentSelectedElement = element;
           lastSelectedDetails = details;
           console.log('[DevLocator] Element selected:', details);
@@ -210,6 +324,7 @@ export default defineContentScript({
         },
         // onCancel
         () => {
+          isShiftHeld = false;
           console.log('[DevLocator] Inspection cancelled.');
           chrome.runtime.sendMessage({
             type: MESSAGE_TYPES.INSPECTION_STATUS_CHANGED,
