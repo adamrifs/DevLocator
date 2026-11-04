@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Crosshair, Settings, Code, Sparkles, CheckCircle2, AlertCircle, XCircle } from 'lucide-react';
+import { Crosshair, Settings, Code, Sparkles, CheckCircle2, AlertCircle, XCircle, Tag, Copy, Check } from 'lucide-react';
 import Button from '../../components/ui/Button.jsx';
 import SectionTitle from '../../components/ui/SectionTitle.jsx';
 import IDESettings from '../../components/settings/IDESettings.jsx';
@@ -13,13 +13,15 @@ export default function App() {
   const [isInspecting, setIsInspecting] = useState(false);
   const [pageSupported, setPageSupported] = useState(true);
   const [statusMessage, setStatusMessage] = useState('Ready to inspect');
+  const [selectedElement, setSelectedElement] = useState(null);
+  const [copied, setCopied] = useState(false);
 
   // Load saved settings
   useEffect(() => {
     getSettings().then((loaded) => setSettings(loaded));
   }, []);
 
-  // Check current tab inspection status
+  // Check current tab inspection status & selected element
   useEffect(() => {
     async function checkTabStatus() {
       try {
@@ -41,13 +43,23 @@ export default function App() {
           { type: MESSAGE_TYPES.GET_INSPECTION_STATUS },
           (response) => {
             if (chrome.runtime.lastError) {
-              // Content script might not be injected yet or page is still loading
               setIsInspecting(false);
               return;
             }
             if (response && typeof response.isInspecting === 'boolean') {
               setIsInspecting(response.isInspecting);
               setStatusMessage(response.isInspecting ? 'Inspection active on this page' : 'Ready to inspect');
+            }
+          }
+        );
+
+        // Query last inspected element
+        chrome.tabs.sendMessage(
+          tab.id,
+          { type: MESSAGE_TYPES.GET_SELECTED_ELEMENT },
+          (response) => {
+            if (!chrome.runtime.lastError && response?.details) {
+              setSelectedElement(response.details);
             }
           }
         );
@@ -60,9 +72,12 @@ export default function App() {
 
     // Listen for runtime status changes
     const messageListener = (message) => {
-      if (message && message.type === MESSAGE_TYPES.INSPECTION_STATUS_CHANGED) {
+      if (!message) return;
+      if (message.type === MESSAGE_TYPES.INSPECTION_STATUS_CHANGED) {
         setIsInspecting(Boolean(message.isInspecting));
         setStatusMessage(message.isInspecting ? 'Inspection active on this page' : 'Ready to inspect');
+      } else if (message.type === MESSAGE_TYPES.ELEMENT_SELECTED) {
+        setSelectedElement(message.details);
       }
     };
 
@@ -93,20 +108,18 @@ export default function App() {
         },
         (response) => {
           if (chrome.runtime.lastError) {
-            // If content script wasn't loaded (e.g. tab opened before extension installed)
             chrome.scripting.executeScript(
               {
                 target: { tabId: tab.id },
                 files: ['content-scripts/content.js'],
               },
               () => {
-                // Retry sending message after script injection
                 chrome.tabs.sendMessage(tab.id, {
                   type: MESSAGE_TYPES.START_INSPECTION,
                   settings,
                 });
                 setIsInspecting(true);
-                window.close(); // Close popup so user can click elements on webpage
+                window.close();
               }
             );
             return;
@@ -114,7 +127,6 @@ export default function App() {
 
           setIsInspecting(!isInspecting);
           if (!isInspecting) {
-            // Close popup so user immediately has full view of website
             window.close();
           }
         }
@@ -122,6 +134,14 @@ export default function App() {
     } catch (err) {
       console.error('[DevLocator] Failed to toggle inspection:', err);
     }
+  };
+
+  const handleCopySelector = (selector) => {
+    if (!selector) return;
+    navigator.clipboard.writeText(selector).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    });
   };
 
   const handleUpdateSettings = async (updates) => {
@@ -236,6 +256,41 @@ export default function App() {
               {isInspecting ? 'Stop Inspection' : 'Inspect Element'}
             </Button>
 
+            {/* Selected Element Summary if present */}
+            {selectedElement && (
+              <div className="p-3 rounded-lg bg-slate-800/60 border border-slate-700/80 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-sky-400">
+                    Inspected Element
+                  </span>
+                  <span className="text-[10px] text-slate-400 font-mono">
+                    {selectedElement.dimensions?.width} &times; {selectedElement.dimensions?.height}px
+                  </span>
+                </div>
+                <div className="font-mono text-xs font-semibold text-slate-200 truncate">
+                  &lt;{selectedElement.tagName}
+                  {selectedElement.id && <span className="text-amber-300">#{selectedElement.id}</span>}
+                  {selectedElement.classList?.length > 0 && (
+                    <span className="text-slate-400">.{selectedElement.classList.slice(0, 2).join('.')}</span>
+                  )}
+                  &gt;
+                </div>
+                <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-800">
+                  <span className="font-mono text-[11px] text-slate-400 truncate max-w-[220px]" title={selectedElement.selector}>
+                    {selectedElement.selector}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => handleCopySelector(selectedElement.selector)}
+                    className="p-1 rounded hover:bg-slate-700 text-slate-300 hover:text-white"
+                    title="Copy Selector"
+                  >
+                    {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Configured Editor Banner */}
             <div className="p-2.5 rounded-lg bg-slate-800/40 border border-slate-800 flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -310,4 +365,3 @@ export default function App() {
     </div>
   );
 }
-

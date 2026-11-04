@@ -1,8 +1,10 @@
 /**
- * Utility functions for extracting metadata from DOM elements and generating selectors.
+ * Utility functions for extracting metadata from DOM elements, computed styles,
+ * DOM hierarchy, and generating selectors.
  */
 
 export const DEVLOCATOR_ROOT_ID = '__devlocator-inspector-root__';
+export const DEVLOCATOR_PANEL_HOST_ID = '__devlocator-panel-host__';
 export const DEVLOCATOR_ATTRIBUTE = 'data-devlocator-ui';
 
 /**
@@ -16,8 +18,10 @@ export function isDevLocatorElement(node) {
   }
   return Boolean(
     node.closest(`#${DEVLOCATOR_ROOT_ID}`) ||
+    node.closest(`#${DEVLOCATOR_PANEL_HOST_ID}`) ||
     node.closest(`[${DEVLOCATOR_ATTRIBUTE}]`) ||
     node.id === DEVLOCATOR_ROOT_ID ||
+    node.id === DEVLOCATOR_PANEL_HOST_ID ||
     node.hasAttribute(DEVLOCATOR_ATTRIBUTE)
   );
 }
@@ -49,7 +53,6 @@ export function getElementSelector(element) {
     return `${tagName}.${classList.join('.')}`;
   }
 
-  // Fallback to parent nth-of-type
   const parent = element.parentElement;
   if (!parent) {
     return tagName;
@@ -103,6 +106,127 @@ export function getElementXPath(element) {
 }
 
 /**
+ * Builds the full DOM ancestor hierarchy from document root down to target element.
+ * @param {Element} element
+ * @returns {Array<{ tagName: string, id: string, className: string, selector: string }>}
+ */
+export function getDomHierarchy(element) {
+  const hierarchy = [];
+  let current = element;
+
+  while (current && current instanceof Element && current !== document.documentElement) {
+    if (!isDevLocatorElement(current)) {
+      hierarchy.unshift({
+        tagName: current.tagName.toLowerCase(),
+        id: current.id || '',
+        className: current.className && typeof current.className === 'string' ? current.className : '',
+        selector: getElementSelector(current),
+      });
+    }
+    current = current.parentElement;
+  }
+
+  // Include html tag as root
+  if (document.documentElement && !isDevLocatorElement(document.documentElement)) {
+    hierarchy.unshift({
+      tagName: 'html',
+      id: document.documentElement.id || '',
+      className: document.documentElement.className || '',
+      selector: 'html',
+    });
+  }
+
+  return hierarchy;
+}
+
+/**
+ * Extracts key computed styles and box model values.
+ * @param {Element} element
+ * @returns {object}
+ */
+export function getElementComputedStyles(element) {
+  if (!element || !(element instanceof Element)) {
+    return { categorized: {}, boxModel: {} };
+  }
+
+  const computed = window.getComputedStyle(element);
+
+  const boxModel = {
+    marginTop: computed.marginTop,
+    marginRight: computed.marginRight,
+    marginBottom: computed.marginBottom,
+    marginLeft: computed.marginLeft,
+    paddingTop: computed.paddingTop,
+    paddingRight: computed.paddingRight,
+    paddingBottom: computed.paddingBottom,
+    paddingLeft: computed.paddingLeft,
+    borderTopWidth: computed.borderTopWidth,
+    borderRightWidth: computed.borderRightWidth,
+    borderBottomWidth: computed.borderBottomWidth,
+    borderLeftWidth: computed.borderLeftWidth,
+    boxSizing: computed.boxSizing,
+  };
+
+  const categorized = {
+    layout: {
+      display: computed.display,
+      position: computed.position,
+      flexDirection: computed.flexDirection,
+      justifyContent: computed.justifyContent,
+      alignItems: computed.alignItems,
+      gap: computed.gap,
+      zIndex: computed.zIndex,
+      overflow: computed.overflow,
+    },
+    dimension: {
+      width: computed.width,
+      height: computed.height,
+      minWidth: computed.minWidth,
+      maxWidth: computed.maxWidth,
+      minHeight: computed.minHeight,
+      maxHeight: computed.maxHeight,
+    },
+    typography: {
+      fontFamily: computed.fontFamily,
+      fontSize: computed.fontSize,
+      fontWeight: computed.fontWeight,
+      lineHeight: computed.lineHeight,
+      color: computed.color,
+      textAlign: computed.textAlign,
+    },
+    appearance: {
+      backgroundColor: computed.backgroundColor,
+      border: `${computed.borderTopWidth} ${computed.borderTopStyle} ${computed.borderTopColor}`,
+      borderRadius: computed.borderRadius,
+      boxShadow: computed.boxShadow,
+      opacity: computed.opacity,
+      cursor: computed.cursor,
+    },
+  };
+
+  return { categorized, boxModel };
+}
+
+/**
+ * Formats an element's outerHTML for clean display.
+ * @param {Element} element
+ * @returns {string}
+ */
+export function getFormattedHTML(element) {
+  if (!element || !(element instanceof Element)) {
+    return '';
+  }
+
+  const clone = element.cloneNode(true);
+  // Remove DevLocator internal attributes from clone
+  clone.removeAttribute(DEVLOCATOR_ATTRIBUTE);
+  const elements = clone.querySelectorAll(`[${DEVLOCATOR_ATTRIBUTE}]`);
+  elements.forEach((el) => el.removeAttribute(DEVLOCATOR_ATTRIBUTE));
+
+  return clone.outerHTML || '';
+}
+
+/**
  * Extracts comprehensive details from a DOM element.
  * @param {Element} element
  * @returns {object|null}
@@ -117,7 +241,7 @@ export function extractElementDetails(element) {
   const id = element.id || '';
   const classNames = Array.from(element.classList);
 
-  // Extract all attributes
+  // Extract all attributes except DevLocator internal ones
   const attributes = {};
   for (let i = 0; i < element.attributes.length; i++) {
     const attr = element.attributes[i];
@@ -125,6 +249,10 @@ export function extractElementDetails(element) {
       attributes[attr.name] = attr.value;
     }
   }
+
+  const { categorized, boxModel } = getElementComputedStyles(element);
+  const domHierarchy = getDomHierarchy(element);
+  const outerHTML = getFormattedHTML(element);
 
   return {
     tagName,
@@ -141,7 +269,18 @@ export function extractElementDetails(element) {
       bottom: Math.round(rect.bottom * 10) / 10,
       right: Math.round(rect.right * 10) / 10,
     },
+    boxModel,
+    styles: categorized,
+    domHierarchy,
+    outerHTML,
     attributes,
-    textContent: (element.textContent || '').trim().slice(0, 100),
+    textContent: (element.textContent || '').trim().slice(0, 150),
+    childElementCount: element.childElementCount || 0,
+    // Framework and source location fields (ready for Phases 4 and 5)
+    framework: null,
+    componentName: null,
+    sourceFile: null,
+    lineNumber: null,
+    columnNumber: null,
   };
 }

@@ -1,96 +1,156 @@
+import React from 'react';
+import ReactDOM from 'react-dom/client';
 import { defineContentScript } from 'wxt/sandbox';
 import { MESSAGE_TYPES, isValidMessage } from '../utils/messages.js';
 import { ElementPicker } from '../modules/element-inspector/element-picker.js';
-import { DEVLOCATOR_ATTRIBUTE } from '../modules/element-inspector/element-details.js';
+import {
+  DEVLOCATOR_PANEL_HOST_ID,
+  DEVLOCATOR_ATTRIBUTE,
+  extractElementDetails,
+} from '../modules/element-inspector/element-details.js';
+import InspectorPanel from '../components/inspector/InspectorPanel.jsx';
+import contentCss from '../assets/content.css?inline';
 
 export default defineContentScript({
   matches: ['<all_urls>'],
   runAt: 'document_idle',
   main() {
     let picker = null;
-    let toastElement = null;
+    let currentSettings = null;
+    let lastSelectedDetails = null;
 
     /**
-     * Displays a brief selection confirmation toast on the webpage.
+     * Unmounts and removes the floating inspector panel from the page.
      */
-    function showSelectionToast(details) {
-      if (toastElement && toastElement.parentNode) {
-        toastElement.parentNode.removeChild(toastElement);
-      }
-
-      toastElement = document.createElement('div');
-      toastElement.setAttribute(DEVLOCATOR_ATTRIBUTE, 'true');
-      toastElement.style.cssText = `
-        position: fixed;
-        bottom: 24px;
-        right: 24px;
-        background: #0f172a;
-        color: #f8fafc;
-        border: 1px solid #38bdf8;
-        border-radius: 8px;
-        padding: 10px 14px;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-        font-size: 12px;
-        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4), 0 0 10px rgba(56, 189, 248, 0.2);
-        z-index: 2147483647;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        animation: devlocator-fadein 0.2s ease-out;
-        user-select: none;
-      `;
-
-      const idString = details.id ? `#${details.id}` : '';
-      const classString = details.classList.length ? `.${details.classList.slice(0, 2).join('.')}` : '';
-
-      toastElement.innerHTML = `
-        <div style="width: 8px; height: 8px; border-radius: 50%; background: #10b981;"></div>
-        <div>
-          <div style="font-weight: 600; color: #38bdf8;">
-            &lt;${details.tagName}${idString}${classString}&gt;
-          </div>
-          <div style="font-size: 11px; color: #94a3b8; margin-top: 2px;">
-            Selector: <span style="color: #f1f5f9; font-family: monospace;">${details.selector}</span>
-            &bull; Size: ${details.dimensions.width} &times; ${details.dimensions.height}px
-          </div>
-        </div>
-      `;
-
-      (document.body || document.documentElement).appendChild(toastElement);
-
-      setTimeout(() => {
-        if (toastElement && toastElement.parentNode) {
-          toastElement.style.transition = 'opacity 0.3s ease-out';
-          toastElement.style.opacity = '0';
-          setTimeout(() => {
-            if (toastElement && toastElement.parentNode) {
-              toastElement.parentNode.removeChild(toastElement);
-              toastElement = null;
-            }
-          }, 300);
+    function removeInspectorPanel() {
+      const host = document.getElementById(DEVLOCATOR_PANEL_HOST_ID);
+      if (host) {
+        if (host._devlocatorRoot) {
+          try {
+            host._devlocatorRoot.unmount();
+          } catch (e) {
+            // Ignore unmount error if already cleaned
+          }
         }
-      }, 3500);
+        if (host.parentNode) {
+          host.parentNode.removeChild(host);
+        }
+      }
     }
 
     /**
-     * Initializes the element picker.
+     * Mounts the React InspectorPanel inside an isolated Shadow DOM container.
      */
-    function getPicker(settings) {
+    function renderInspectorPanel(details, settings) {
+      removeInspectorPanel();
+
+      const host = document.createElement('div');
+      host.id = DEVLOCATOR_PANEL_HOST_ID;
+      host.setAttribute(DEVLOCATOR_ATTRIBUTE, 'true');
+      host.style.cssText = `
+        position: fixed;
+        z-index: 2147483647;
+        pointer-events: auto;
+      `;
+
+      // Attach Shadow Root for complete CSS and DOM isolation from the page
+      const shadow = host.attachShadow({ mode: 'open' });
+
+      // Inject Tailwind compiled styles into Shadow Root
+      const styleEl = document.createElement('style');
+      styleEl.textContent = contentCss;
+      shadow.appendChild(styleEl);
+
+      // Mount point for React
+      const mountPoint = document.createElement('div');
+      mountPoint.id = 'devlocator-panel-root';
+      shadow.appendChild(mountPoint);
+
+      (document.body || document.documentElement).appendChild(host);
+
+      const root = ReactDOM.createRoot(mountPoint);
+      host._devlocatorRoot = root;
+
+      const handleClose = () => {
+        removeInspectorPanel();
+      };
+
+      const handleReinspect = () => {
+        removeInspectorPanel();
+        startInspection(settings);
+      };
+
+      const handleSelectAncestor = (ancestorItem) => {
+        try {
+          const el = document.querySelector(ancestorItem.selector);
+          if (el) {
+            const newDetails = extractElementDetails(el);
+            lastSelectedDetails = newDetails;
+            renderInspectorPanel(newDetails, settings);
+          }
+        } catch (e) {
+          console.warn('[DevLocator] Failed to select ancestor:', e);
+        }
+      };
+
+      root.render(
+        React.createElement(InspectorPanel, {
+          details,
+          ide: settings?.ide || 'antigravity',
+          onClose: handleClose,
+          onReinspect: handleReinspect,
+          onSelectAncestor: handleSelectAncestor,
+          isEmbedded: false,
+        })
+      );
+    }
+
+    /**
+     * Starts element inspection mode.
+     */
+    function startInspection(settings) {
       if (!picker) {
         picker = new ElementPicker({
           highlightColor: settings?.highlightColor || '#38bdf8',
           showTooltip: settings?.showTooltip !== false,
         });
-      } else if (settings) {
+      } else {
         picker.highlighter.updateConfig({
-          highlightColor: settings.highlightColor,
-          showTooltip: settings.showTooltip,
+          highlightColor: settings?.highlightColor,
+          showTooltip: settings?.showTooltip,
         });
       }
-      return picker;
+
+      // Close open panel when entering picker mode
+      removeInspectorPanel();
+
+      picker.start(
+        // onSelect
+        (element, details) => {
+          lastSelectedDetails = details;
+          console.log('[DevLocator] Element selected:', details);
+
+          // Render inspector panel on webpage
+          renderInspectorPanel(details, settings || currentSettings);
+
+          // Notify extension
+          chrome.runtime.sendMessage({
+            type: MESSAGE_TYPES.ELEMENT_SELECTED,
+            details,
+          }).catch(() => {});
+        },
+        // onCancel
+        () => {
+          console.log('[DevLocator] Inspection cancelled.');
+          chrome.runtime.sendMessage({
+            type: MESSAGE_TYPES.INSPECTION_STATUS_CHANGED,
+            isInspecting: false,
+          }).catch(() => {});
+        }
+      );
     }
 
-    // Listen for messages from popup or background service worker
+    // Message listener
     chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       if (!isValidMessage(message)) {
         return false;
@@ -99,37 +159,18 @@ export default defineContentScript({
       switch (message.type) {
         case MESSAGE_TYPES.GET_INSPECTION_STATUS: {
           const isInspecting = picker ? picker.isActive : false;
-          sendResponse({ isInspecting });
+          sendResponse({ isInspecting, hasSelectedElement: Boolean(lastSelectedDetails) });
+          return true;
+        }
+
+        case MESSAGE_TYPES.GET_SELECTED_ELEMENT: {
+          sendResponse({ details: lastSelectedDetails });
           return true;
         }
 
         case MESSAGE_TYPES.START_INSPECTION: {
-          const currentPicker = getPicker(message.settings);
-
-          currentPicker.start(
-            // onSelect callback
-            (element, details) => {
-              console.log('[DevLocator] Element selected:', details);
-              showSelectionToast(details);
-
-              // Notify extension of selection
-              chrome.runtime.sendMessage({
-                type: MESSAGE_TYPES.ELEMENT_SELECTED,
-                details,
-              }).catch(() => {
-                // Ignore errors if popup is closed
-              });
-            },
-            // onCancel callback
-            () => {
-              console.log('[DevLocator] Inspection cancelled by user.');
-              chrome.runtime.sendMessage({
-                type: MESSAGE_TYPES.INSPECTION_STATUS_CHANGED,
-                isInspecting: false,
-              }).catch(() => {});
-            }
-          );
-
+          currentSettings = message.settings || null;
+          startInspection(currentSettings);
           sendResponse({ success: true, isInspecting: true });
           return true;
         }
@@ -147,6 +188,6 @@ export default defineContentScript({
       }
     });
 
-    console.log('[DevLocator] Content script initialized with ElementPicker.');
+    console.log('[DevLocator] Content script ready with InspectorPanel & Shadow DOM.');
   },
 });
