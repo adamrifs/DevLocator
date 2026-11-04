@@ -66,7 +66,7 @@ export class ElementHighlighter {
       display: none;
     `;
 
-    // Informational Tooltip
+    // Informational Tooltip in modern soft-pill theme
     this.tooltip = document.createElement('div');
     this.tooltip.setAttribute(DEVLOCATOR_ATTRIBUTE, 'true');
     this.tooltip.style.cssText = `
@@ -76,17 +76,17 @@ export class ElementHighlighter {
       display: none;
       align-items: center;
       gap: 6px;
-      padding: 4px 8px;
-      border-radius: 4px;
+      padding: 4px 10px;
+      border-radius: 9999px;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace;
       font-size: 11px;
       font-weight: 500;
       line-height: 1.2;
-      color: #f8fafc;
-      background: rgba(15, 23, 42, 0.95);
-      border: 1px solid rgba(255, 255, 255, 0.18);
-      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
-      backdrop-filter: blur(4px);
+      color: #18181b;
+      background: rgba(255, 255, 255, 0.96);
+      border: 1px solid rgba(226, 232, 240, 0.9);
+      box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.12), 0 2px 6px rgba(0, 0, 0, 0.04);
+      backdrop-filter: blur(8px);
       white-space: nowrap;
       z-index: 2147483647;
       max-width: 90vw;
@@ -172,12 +172,12 @@ export class ElementHighlighter {
     const firstClass = element.classList.length ? `.${element.classList[0]}` : '';
     const dim = `${Math.round(rect.width)} × ${Math.round(rect.height)}`;
 
-    // Build tooltip HTML
+    // Build tooltip HTML matching modern soft-theme
     this.tooltip.innerHTML = `
-      <span style="color: #38bdf8; font-weight: 700;">${tagName}</span>
-      ${id ? `<span style="color: #fbbf24;">${id}</span>` : ''}
-      ${firstClass ? `<span style="color: #94a3b8;">${firstClass}</span>` : ''}
-      <span style="color: #10b981; font-size: 10px; margin-left: 2px; padding: 1px 4px; background: rgba(16, 185, 129, 0.15); border-radius: 3px;">${dim}</span>
+      <span style="color: #0066ff; font-weight: 700;">${tagName}</span>
+      ${id ? `<span style="color: #d97706; font-weight: 600;">${id}</span>` : ''}
+      ${firstClass ? `<span style="color: #64748b;">${firstClass}</span>` : ''}
+      <span style="color: #0066ff; font-size: 10px; margin-left: 3px; padding: 2px 6px; background: rgba(0, 102, 255, 0.08); border-radius: 9999px; font-weight: 600;">${dim}</span>
     `;
 
     this.tooltip.style.display = 'inline-flex';

@@ -7,7 +7,7 @@ import {
   Code,
   Sparkles,
   Info,
-  Palette,
+  Sliders,
   FileCode,
   Layers,
   Search,
@@ -16,6 +16,7 @@ import {
   ArrowDown,
   Copy,
   Check,
+  Plus,
 } from 'lucide-react';
 import ElementDetails from './ElementDetails.jsx';
 import ComponentTree from './ComponentTree.jsx';
@@ -23,15 +24,15 @@ import { MESSAGE_TYPES } from '../../utils/messages.js';
 
 const TABS = [
   { id: 'overview', label: 'Overview', icon: Info },
-  { id: 'styles', label: 'Styles', icon: Palette },
-  { id: 'html', label: 'HTML', icon: Code },
+  { id: 'styles', label: 'Styles', icon: Sliders },
   { id: 'component', label: 'Component', icon: Layers },
   { id: 'source', label: 'Source', icon: FileCode },
 ];
 
 /**
- * InspectorPanel renders the comprehensive in-page DevLocator panel.
- * Mounts in open ShadowRoot so styles do not interfere with host web application.
+ * InspectorPanel renders the in-page DevLocator panel matching the
+ * modern soft-UI / iOS-inspired aesthetic with rounded cards, radial orbs,
+ * and floating bottom dock navigation.
  */
 export default function InspectorPanel({
   details,
@@ -39,8 +40,7 @@ export default function InspectorPanel({
   onReinspect,
   onSelectAncestor,
   ide = 'antigravity',
-  theme = 'dark',
-  isEmbedded = false, // true if rendered inside popup, false if floating overlay
+  isEmbedded = false,
 }) {
   const [activeTab, setActiveTab] = useState('overview');
   const [isMinimized, setIsMinimized] = useState(false);
@@ -49,8 +49,6 @@ export default function InspectorPanel({
   const [openStatus, setOpenStatus] = useState(null); // { type: 'loading'|'success'|'error', text: string }
 
   if (!details) return null;
-
-  const isLight = theme === 'light';
 
   const copyToClipboard = (text, key) => {
     if (!text) return;
@@ -64,28 +62,20 @@ export default function InspectorPanel({
   const idString = id ? `#${id}` : '';
   const classString = classList?.length ? `.${classList.slice(0, 2).join('.')}` : '';
 
-  // Minimized compact view
+  // Minimized floating pill view
   if (isMinimized) {
     return (
-      <div className={`fixed bottom-4 right-4 z-[2147483647] border rounded-full shadow-2xl p-2 flex items-center gap-3 text-xs backdrop-blur select-none ${
-        isLight
-          ? 'bg-white/95 border-slate-300 text-slate-800'
-          : 'bg-slate-900 border-slate-700/80 text-white'
-      }`}>
-        <div className="flex items-center gap-2 pl-2">
-          <div className="w-2.5 h-2.5 rounded-full bg-sky-400 animate-pulse" />
-          <span className="font-mono font-semibold text-sky-400">
+      <div className="fixed bottom-5 right-5 z-[2147483647] bg-white/95 border border-slate-200/80 shadow-[0_16px_40px_rgba(0,0,0,0.12)] rounded-full px-3 py-2 flex items-center gap-3 text-xs backdrop-blur-md select-none transition-all">
+        <div className="flex items-center gap-2 pl-1">
+          <div className="w-2.5 h-2.5 rounded-full bg-[#0066ff] shadow-[0_0_8px_rgba(0,102,255,0.6)] animate-pulse" />
+          <span className="font-mono font-bold text-slate-900">
             &lt;{tagName}{idString}&gt;
           </span>
         </div>
         <button
           type="button"
           onClick={() => setIsMinimized(false)}
-          className={`p-1 rounded-full ${
-            isLight
-              ? 'hover:bg-slate-200 text-slate-600 hover:text-slate-900'
-              : 'hover:bg-slate-800 text-slate-300 hover:text-white'
-          }`}
+          className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 transition-colors flex items-center justify-center"
           title="Expand Inspector"
         >
           <Maximize2 className="w-3.5 h-3.5" />
@@ -93,7 +83,7 @@ export default function InspectorPanel({
         <button
           type="button"
           onClick={onClose}
-          className="p-1 rounded-full hover:bg-rose-500/20 text-slate-400 hover:text-rose-500"
+          className="w-7 h-7 rounded-full bg-rose-50 hover:bg-rose-100 text-rose-500 hover:text-rose-700 transition-colors flex items-center justify-center"
           title="Close Inspector"
         >
           <X className="w-3.5 h-3.5" />
@@ -104,46 +94,35 @@ export default function InspectorPanel({
 
   return (
     <div
-      className={`flex flex-col font-sans select-none border shadow-2xl ${
-        isLight
-          ? 'bg-white text-slate-900 border-slate-200'
-          : 'bg-slate-950 text-slate-100 border-slate-800'
-      } ${
+      className={`flex flex-col font-sans select-none bg-[#f4f5f9] border border-white/80 shadow-[0_24px_60px_-12px_rgba(0,0,0,0.14),0_0_0_1px_rgba(0,0,0,0.04)] ${
         isEmbedded
-          ? 'w-full h-full'
-          : 'fixed bottom-4 right-4 z-[2147483647] w-[400px] max-h-[580px] rounded-xl overflow-hidden'
+          ? 'w-full h-full rounded-2xl'
+          : 'fixed bottom-5 right-5 z-[2147483647] w-[390px] max-h-[610px] rounded-[32px] overflow-hidden'
       }`}
     >
       {/* Top Header */}
-      <div className={`flex items-center justify-between px-3.5 py-2.5 border-b ${
-        isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-900/90 border-slate-800'
-      }`}>
+      <div className="px-4 pt-3.5 pb-2 flex items-center justify-between">
         <div className="flex items-center gap-2 overflow-hidden">
-          <div className="w-5 h-5 rounded bg-sky-500/20 text-sky-400 flex items-center justify-center shrink-0">
-            <Crosshair className="w-3.5 h-3.5" />
+          {/* Element Tag Pill Badge */}
+          <div className="px-3 py-1 rounded-full bg-white border border-slate-200/80 shadow-xs flex items-center gap-1.5 text-xs font-mono font-bold text-[#0066ff] shrink-0">
+            <span className="w-2 h-2 rounded-full bg-[#0066ff] shadow-[0_0_6px_rgba(0,102,255,0.4)]" />
+            <span className="truncate max-w-[120px]">&lt;{tagName}{idString}&gt;</span>
           </div>
-          <div className="flex items-center gap-1.5 overflow-hidden">
-            <span className="text-xs font-mono font-bold text-sky-400 truncate">
-              &lt;{tagName}
+          {classString && (
+            <span className="text-[11px] font-mono text-slate-400 truncate max-w-[100px]" title={classString}>
+              {classString}
             </span>
-            {id && <span className="text-xs font-mono text-amber-500 truncate">#{id}</span>}
-            {classString && <span className={`text-xs font-mono truncate ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>{classString}</span>}
-            <span className="text-xs font-mono font-bold text-sky-400">&gt;</span>
-          </div>
+          )}
         </div>
 
-        {/* Action Controls */}
-        <div className="flex items-center gap-1 shrink-0">
+        {/* Top Header Control Buttons */}
+        <div className="flex items-center gap-1.5 shrink-0">
           {/* Navigate to Parent */}
           {details.parent && (
             <button
               type="button"
               onClick={() => onSelectAncestor?.(details.parent)}
-              className={`p-1.5 rounded transition-colors ${
-                isLight
-                  ? 'hover:bg-slate-200 text-slate-600 hover:text-slate-900'
-                  : 'hover:bg-slate-800 text-slate-300 hover:text-sky-300'
-              }`}
+              className="w-7 h-7 rounded-full bg-white hover:bg-slate-100 border border-slate-200/70 shadow-xs flex items-center justify-center text-slate-600 hover:text-[#0066ff] transition-all"
               title={`Inspect Parent <${details.parent.tagName}> (Up Arrow)`}
             >
               <ArrowUp className="w-3.5 h-3.5" />
@@ -155,49 +134,29 @@ export default function InspectorPanel({
             <button
               type="button"
               onClick={() => onSelectAncestor?.(details.children[0])}
-              className={`p-1.5 rounded transition-colors ${
-                isLight
-                  ? 'hover:bg-slate-200 text-slate-600 hover:text-slate-900'
-                  : 'hover:bg-slate-800 text-slate-300 hover:text-sky-300'
-              }`}
+              className="w-7 h-7 rounded-full bg-white hover:bg-slate-100 border border-slate-200/70 shadow-xs flex items-center justify-center text-slate-600 hover:text-[#0066ff] transition-all"
               title={`Inspect Child <${details.children[0].tagName}> (Down Arrow)`}
             >
               <ArrowDown className="w-3.5 h-3.5" />
             </button>
           )}
 
-          {onReinspect && (
-            <button
-              type="button"
-              onClick={onReinspect}
-              className={`p-1.5 rounded transition-colors ${
-                isLight
-                  ? 'hover:bg-slate-200 text-slate-600 hover:text-slate-900'
-                  : 'hover:bg-slate-800 text-slate-300 hover:text-sky-300'
-              }`}
-              title="Pick Another Element"
-            >
-              <Crosshair className="w-3.5 h-3.5" />
-            </button>
-          )}
           {!isEmbedded && (
             <button
               type="button"
               onClick={() => setIsMinimized(true)}
-              className={`p-1.5 rounded transition-colors ${
-                isLight
-                  ? 'hover:bg-slate-200 text-slate-500 hover:text-slate-800'
-                  : 'hover:bg-slate-800 text-slate-400 hover:text-white'
-              }`}
+              className="w-7 h-7 rounded-full bg-white hover:bg-slate-100 border border-slate-200/70 shadow-xs flex items-center justify-center text-slate-500 hover:text-slate-800 transition-all"
               title="Minimize"
             >
               <Minus className="w-3.5 h-3.5" />
             </button>
           )}
+
+          {/* Circular Close Button (styled like the circular X in design reference) */}
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 rounded hover:bg-rose-500/20 text-slate-400 hover:text-rose-500 transition-colors"
+            className="w-7 h-7 rounded-full bg-slate-200/70 hover:bg-slate-300 text-slate-600 hover:text-slate-900 transition-all flex items-center justify-center"
             title="Close"
           >
             <X className="w-3.5 h-3.5" />
@@ -205,52 +164,43 @@ export default function InspectorPanel({
         </div>
       </div>
 
-      {/* Tabs Navigation Bar */}
-      <div className={`flex items-center px-2 border-b overflow-x-auto ${
-        isLight ? 'bg-slate-50/80 border-slate-200' : 'bg-slate-950 border-slate-800'
-      }`}>
-        {TABS.map((tab) => {
-          const Icon = tab.icon;
-          const isActive = activeTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium border-b-2 transition-all whitespace-nowrap ${
-                isActive
-                  ? isLight
-                    ? 'text-sky-600 border-sky-600 bg-sky-50/80'
-                    : 'text-sky-400 border-sky-400 bg-sky-950/20'
-                  : isLight
-                  ? 'text-slate-500 border-transparent hover:text-slate-900 hover:bg-slate-100'
-                  : 'text-slate-400 border-transparent hover:text-slate-200 hover:bg-slate-900/40'
-              }`}
-            >
-              <Icon className="w-3.5 h-3.5" />
-              <span>{tab.label}</span>
-              {tab.id === 'source' && details.sourceFile && (
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
-              )}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Tab Panels Body */}
-      <div className="flex-1 overflow-y-auto p-3.5 space-y-3 max-h-[460px]">
+      {/* Scrollable Content Body */}
+      <div className="flex-1 overflow-y-auto px-4 py-2 space-y-3.5 max-h-[470px]">
         {/* 1. OVERVIEW TAB */}
         {activeTab === 'overview' && (
-          <div className="space-y-4">
-            <ElementDetails details={details} onSelectChild={onSelectAncestor} theme={theme} />
-            <div className={`pt-2 border-t ${isLight ? 'border-slate-200' : 'border-slate-800'}`}>
-              <span className={`text-xs font-semibold block mb-2 ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>
-                DOM Hierarchy
+          <div className="space-y-3.5">
+            {/* Hero Drop Card (exact match of top container in the user design image) */}
+            <div className="bg-white/80 border-2 border-dashed border-slate-200 rounded-3xl p-5 text-center shadow-xs relative overflow-hidden">
+              <h4 className="font-bold text-slate-900 text-sm tracking-tight">
+                {details.componentName ? `<${details.componentName} />` : `<${tagName}> Component`}
+              </h4>
+
+              {/* Radial Glowing Orb in center */}
+              <div
+                className="w-16 h-16 rounded-full mx-auto my-3 flex items-center justify-center relative shadow-[0_10px_25px_-5px_rgba(0,102,255,0.28)] border-2 border-white"
+                style={{
+                  background: 'radial-gradient(circle at 50% 30%, #ffffff 0%, #e0edff 50%, #cbe1ff 100%)',
+                }}
+              >
+                <Sparkles className="w-7 h-7 text-[#0066ff]" />
+              </div>
+
+              <p className="text-xs text-slate-400 font-medium px-2 leading-relaxed">
+                {details.framework || 'Vanilla HTML'} &bull; {details.dimensions?.width} &times; {details.dimensions?.height} px
+              </p>
+            </div>
+
+            {/* Element Details & Children */}
+            <ElementDetails details={details} onSelectChild={onSelectAncestor} />
+
+            {/* DOM Hierarchy Section */}
+            <div className="space-y-2 pt-1">
+              <span className="text-xs font-semibold text-slate-800 px-1 block">
+                DOM Ancestor Hierarchy
               </span>
               <ComponentTree
                 hierarchy={domHierarchy}
                 onSelectAncestor={onSelectAncestor}
-                theme={theme}
               />
             </div>
           </div>
@@ -259,19 +209,15 @@ export default function InspectorPanel({
         {/* 2. STYLES TAB */}
         {activeTab === 'styles' && (
           <div className="space-y-3">
-            {/* Search / Filter styles */}
+            {/* Search filter input in soft white pill card */}
             <div className="relative">
-              <Search className={`w-3.5 h-3.5 absolute left-2.5 top-2.5 ${isLight ? 'text-slate-400' : 'text-slate-500'}`} />
+              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
               <input
                 type="text"
                 placeholder="Filter computed styles..."
                 value={styleFilter}
                 onChange={(e) => setStyleFilter(e.target.value)}
-                className={`w-full pl-8 pr-3 py-1.5 text-xs border rounded-md font-mono focus:outline-none focus:border-sky-500 ${
-                  isLight
-                    ? 'bg-white border-slate-300 text-slate-800 placeholder-slate-400'
-                    : 'bg-slate-900 border-slate-800 text-slate-200 placeholder-slate-500'
-                }`}
+                className="w-full pl-10 pr-4 py-2.5 text-xs bg-white border border-slate-200 rounded-2xl text-slate-800 placeholder-slate-400 shadow-xs focus:outline-none focus:border-[#0066ff] transition-all font-mono"
               />
             </div>
 
@@ -285,24 +231,18 @@ export default function InspectorPanel({
               if (filteredProps.length === 0) return null;
 
               return (
-                <div key={categoryName} className={`rounded-lg border p-2.5 ${
-                  isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-900/60 border-slate-800'
-                }`}>
-                  <span className={`text-[10px] uppercase font-bold tracking-wider block mb-2 ${
-                    isLight ? 'text-slate-500' : 'text-slate-400'
-                  }`}>
+                <div key={categoryName} className="rounded-2xl bg-white border border-slate-100/90 p-3.5 shadow-sm space-y-1.5">
+                  <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-1">
                     {categoryName}
                   </span>
                   <div className="space-y-1 font-mono text-xs">
                     {filteredProps.map(([property, value]) => (
                       <div
                         key={property}
-                        className={`flex items-center justify-between py-0.5 px-1.5 rounded ${
-                          isLight ? 'hover:bg-slate-200/50' : 'hover:bg-slate-800/60'
-                        }`}
+                        className="flex items-center justify-between py-1 px-2 rounded-xl hover:bg-slate-50 transition-colors"
                       >
-                        <span className="text-sky-400 font-medium">{property}:</span>
-                        <span className={`truncate max-w-[200px] ${isLight ? 'text-slate-700' : 'text-slate-200'}`} title={String(value)}>
+                        <span className="text-[#0066ff] font-medium">{property}:</span>
+                        <span className="truncate max-w-[190px] text-slate-700 font-normal" title={String(value)}>
                           {String(value)}
                         </span>
                       </div>
@@ -314,63 +254,23 @@ export default function InspectorPanel({
           </div>
         )}
 
-        {/* 3. HTML TAB */}
-        {activeTab === 'html' && (
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <span className={`text-xs font-semibold ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>
-                Outer HTML Snippet
-              </span>
-              <button
-                type="button"
-                onClick={() => copyToClipboard(outerHTML, 'html')}
-                className="flex items-center gap-1 px-2 py-1 text-xs text-sky-400 bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/30 rounded transition-colors"
-              >
-                {copiedKey === 'html' ? (
-                  <>
-                    <Check className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>Copied</span>
-                  </>
-                ) : (
-                  <>
-                    <Copy className="w-3.5 h-3.5" />
-                    <span>Copy HTML</span>
-                  </>
-                )}
-              </button>
-            </div>
-
-            <pre className={`p-3 rounded-lg border text-[11px] font-mono whitespace-pre-wrap break-all overflow-x-auto max-h-72 ${
-              isLight ? 'bg-slate-50 border-slate-200 text-slate-800' : 'bg-slate-900 border-slate-800 text-slate-300'
-            }`}>
-              <code>{outerHTML}</code>
-            </pre>
-          </div>
-        )}
-
-        {/* 4. COMPONENT TAB */}
+        {/* 3. COMPONENT TAB */}
         {activeTab === 'component' && (
-          <div className="space-y-3">
-            {/* Framework Identification Card */}
-            <div className={`p-3.5 rounded-lg border space-y-3 ${
-              isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-900/80 border-slate-800'
-            }`}>
+          <div className="space-y-3.5">
+            {/* Framework Identification Card (matching design reference) */}
+            <div className="p-4 rounded-3xl bg-white border border-slate-100/90 shadow-sm space-y-3">
               <div className="flex items-center justify-between">
-                <span className={`text-[11px] font-semibold uppercase tracking-wider ${
-                  isLight ? 'text-slate-500' : 'text-slate-400'
-                }`}>
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
                   Detected Framework
                 </span>
-                <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
+                <span className={`text-[11px] font-bold px-3 py-1 rounded-full ${
                   details.framework?.includes('React')
-                    ? 'bg-sky-500/20 text-sky-400 border border-sky-500/30'
+                    ? 'bg-blue-50 text-[#0066ff] border border-blue-200/60'
                     : details.framework?.includes('Vue')
-                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                    ? 'bg-emerald-50 text-emerald-600 border border-emerald-200/60'
                     : details.framework?.includes('Angular')
-                    ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
-                    : isLight
-                    ? 'bg-slate-200 text-slate-700 border border-slate-300'
-                    : 'bg-slate-800 text-slate-300 border border-slate-700'
+                    ? 'bg-rose-50 text-rose-600 border border-rose-200/60'
+                    : 'bg-slate-100 text-slate-700 border border-slate-200'
                 }`}>
                   {details.framework || 'Vanilla HTML'}
                 </span>
@@ -378,52 +278,42 @@ export default function InspectorPanel({
 
               {/* Component Name */}
               {details.componentName ? (
-                <div className={`pt-2 border-t flex items-center justify-between ${
-                  isLight ? 'border-slate-200' : 'border-slate-800/80'
-                }`}>
+                <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
                   <div>
-                    <span className={`text-[11px] block ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-                      Component Name
-                    </span>
-                    <span className="text-sm font-mono font-bold text-sky-400">
+                    <span className="text-[11px] text-slate-400 block">Component Name</span>
+                    <span className="text-sm font-mono font-bold text-[#0066ff]">
                       &lt;{details.componentName} /&gt;
                     </span>
                   </div>
                   <button
                     type="button"
                     onClick={() => copyToClipboard(details.componentName, 'comp-name')}
-                    className={`p-1 rounded transition-colors ${
-                      isLight ? 'hover:bg-slate-200 text-slate-500 hover:text-slate-900' : 'hover:bg-slate-800 text-slate-400 hover:text-white'
-                    }`}
+                    className="w-8 h-8 rounded-full bg-slate-100/80 hover:bg-slate-200 text-slate-500 hover:text-slate-800 transition-all flex items-center justify-center shrink-0"
                     title="Copy Component Name"
                   >
                     {copiedKey === 'comp-name' ? (
-                      <Check className="w-3.5 h-3.5 text-emerald-400" />
+                      <Check className="w-4 h-4 text-emerald-500" />
                     ) : (
-                      <Copy className="w-3.5 h-3.5" />
+                      <Copy className="w-4 h-4" />
                     )}
                   </button>
                 </div>
               ) : (
-                <div className={`pt-2 border-t text-xs italic ${
-                  isLight ? 'border-slate-200 text-slate-500' : 'border-slate-800/80 text-slate-400'
-                }`}>
+                <div className="pt-2 border-t border-slate-100 text-xs italic text-slate-400">
                   {details.framework === 'Vanilla HTML'
                     ? 'Standard DOM element (no framework component wrapper).'
                     : 'No specific component name resolved for this DOM node.'}
                 </div>
               )}
 
-              {/* Confidence Badge */}
-              <div className={`flex items-center justify-between pt-2 border-t text-xs ${
-                isLight ? 'border-slate-200' : 'border-slate-800/80'
-              }`}>
-                <span className={isLight ? 'text-slate-500' : 'text-slate-400'}>Detection Confidence:</span>
-                <span className={`capitalize font-medium ${
+              {/* Confidence Meter */}
+              <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
+                <span className="text-slate-400 font-medium">Detection Confidence:</span>
+                <span className={`capitalize font-bold ${
                   details.confidence === 'high'
                     ? 'text-emerald-500'
                     : details.confidence === 'partial'
-                    ? 'text-sky-500'
+                    ? 'text-[#0066ff]'
                     : 'text-amber-500'
                 }`}>
                   {details.confidence || 'partial'}
@@ -431,35 +321,27 @@ export default function InspectorPanel({
               </div>
             </div>
 
-            {/* Component Hierarchy */}
+            {/* Component Hierarchy Card */}
             {details.componentHierarchy && details.componentHierarchy.length > 0 && (
-              <div className={`p-3 rounded-lg border space-y-2 ${
-                isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-900/60 border-slate-800'
-              }`}>
-                <span className={`text-xs font-semibold block ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>
+              <div className="p-4 rounded-3xl bg-white border border-slate-100/90 shadow-sm space-y-2">
+                <span className="text-xs font-semibold text-slate-800 block">
                   Component Hierarchy
                 </span>
-                <div className="space-y-1 font-mono text-xs">
+                <div className="space-y-1 font-mono text-xs pt-1">
                   {details.componentHierarchy.map((comp, idx) => {
                     const isTarget = idx === details.componentHierarchy.length - 1;
                     return (
                       <div
                         key={`${comp}-${idx}`}
                         style={{ paddingLeft: `${idx * 10}px` }}
-                        className={`flex items-center gap-1.5 py-0.5 px-1.5 rounded ${
-                          isTarget
-                            ? isLight
-                              ? 'bg-sky-100 text-sky-800 font-bold'
-                              : 'bg-sky-500/15 text-sky-300 font-bold'
-                            : isLight
-                            ? 'text-slate-600'
-                            : 'text-slate-400'
+                        className={`flex items-center gap-2 py-1.5 px-2 rounded-xl ${
+                          isTarget ? 'bg-blue-50 text-[#0066ff] font-bold border border-blue-100' : 'text-slate-600'
                         }`}
                       >
-                        <span className={isLight ? 'text-slate-400' : 'text-slate-600'}>&bull;</span>
+                        <span className="text-slate-300">&bull;</span>
                         <span>&lt;{comp} /&gt;</span>
                         {isTarget && (
-                          <span className="ml-auto text-[9px] uppercase font-sans font-bold px-1 rounded bg-sky-500/20 text-sky-400">
+                          <span className="ml-auto text-[9px] uppercase font-sans font-bold px-2 py-0.5 rounded-full bg-[#0066ff] text-white">
                             Target
                           </span>
                         )}
@@ -472,107 +354,93 @@ export default function InspectorPanel({
           </div>
         )}
 
-        {/* 5. SOURCE TAB */}
+        {/* 4. SOURCE TAB */}
         {activeTab === 'source' && (
-          <div className="space-y-3">
+          <div className="space-y-3.5">
             {details.sourceFile ? (
-              <div className={`p-3.5 rounded-lg border space-y-3 ${
-                isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-900/80 border-slate-800'
-              }`}>
-                <div className="flex items-center justify-between">
-                  <span className={`text-[11px] font-semibold uppercase tracking-wider ${
-                    isLight ? 'text-slate-500' : 'text-slate-400'
-                  }`}>
-                    Source Code Location
-                  </span>
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                    details.sourceVerified
-                      ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                      : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
-                  }`}>
-                    {details.sourceVerified ? 'Verified' : 'Approximate'}
-                  </span>
-                </div>
+              <div className="space-y-3.5">
+                {/* Hero Source Card with Radial Glowing Orb */}
+                <div className="p-5 rounded-3xl bg-white border border-slate-100/90 shadow-sm text-center relative overflow-hidden space-y-3">
+                  {/* Radial Orb */}
+                  <div
+                    className="w-16 h-16 rounded-full mx-auto flex items-center justify-center relative shadow-[0_10px_25px_-5px_rgba(0,102,255,0.28)] border-2 border-white"
+                    style={{
+                      background: 'radial-gradient(circle at 50% 30%, #ffffff 0%, #e0edff 50%, #cbe1ff 100%)',
+                    }}
+                  >
+                    <FileCode className="w-7 h-7 text-[#0066ff]" />
+                  </div>
 
-                {/* Source File */}
-                <div className={`pt-2 border-t space-y-1 ${isLight ? 'border-slate-200' : 'border-slate-800/80'}`}>
-                  <span className={`text-[11px] block ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-                    File Path
-                  </span>
-                  <div className={`flex items-center justify-between gap-2 p-2 rounded border ${
-                    isLight ? 'bg-white border-slate-200' : 'bg-slate-950/60 border-slate-800'
-                  }`}>
-                    <code className={`text-xs font-mono break-all ${isLight ? 'text-emerald-700' : 'text-emerald-300'}`} title={details.sourceFile}>
+                  <div>
+                    <h3 className="font-bold text-slate-900 text-sm">Source Code Location</h3>
+                    <p className="text-xs text-slate-400 font-medium mt-0.5">
+                      {details.sourceVerified ? 'Verified compilation metadata' : 'Approximate debug source'}
+                    </p>
+                  </div>
+
+                  {/* File Path Row */}
+                  <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200/70 flex items-center justify-between gap-2 text-left">
+                    <code className="text-xs font-mono text-emerald-700 break-all font-semibold" title={details.sourceFile}>
                       {details.sourceFile}
                     </code>
                     <button
                       type="button"
                       onClick={() => copyToClipboard(details.sourceFile, 'source-file')}
-                      className={`p-1 rounded transition-colors shrink-0 ${
-                        isLight ? 'hover:bg-slate-200 text-slate-500 hover:text-slate-900' : 'hover:bg-slate-800 text-slate-400 hover:text-white'
-                      }`}
+                      className="w-8 h-8 rounded-full bg-white hover:bg-slate-100 border border-slate-200 text-slate-600 hover:text-slate-900 transition-all flex items-center justify-center shrink-0 shadow-xs"
                       title="Copy File Path"
                     >
                       {copiedKey === 'source-file' ? (
-                        <Check className="w-3.5 h-3.5 text-emerald-400" />
+                        <Check className="w-3.5 h-3.5 text-emerald-500" />
                       ) : (
                         <Copy className="w-3.5 h-3.5" />
                       )}
                     </button>
                   </div>
-                </div>
 
-                {/* Line and Column */}
-                <div className="grid grid-cols-2 gap-2 pt-1">
-                  <div className={`p-2 rounded border ${
-                    isLight ? 'bg-white border-slate-200' : 'bg-slate-950/40 border-slate-800'
-                  }`}>
-                    <span className={`text-[10px] block uppercase ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-                      Line Number
-                    </span>
-                    <span className="text-xs font-mono font-bold text-sky-400">
-                      {details.lineNumber ? `Line ${details.lineNumber}` : 'Unknown'}
-                    </span>
-                  </div>
-                  <div className={`p-2 rounded border ${
-                    isLight ? 'bg-white border-slate-200' : 'bg-slate-950/40 border-slate-800'
-                  }`}>
-                    <span className={`text-[10px] block uppercase ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-                      Column
-                    </span>
-                    <span className="text-xs font-mono font-bold text-sky-400">
-                      {details.columnNumber ? `Col ${details.columnNumber}` : 'Unknown'}
-                    </span>
+                  {/* Line Number & Column Cards */}
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <div className="p-2.5 rounded-2xl bg-slate-50 border border-slate-200/70">
+                      <span className="text-[10px] block uppercase font-bold text-slate-400">Line Number</span>
+                      <span className="text-sm font-mono font-bold text-[#0066ff]">
+                        {details.lineNumber ? `Line ${details.lineNumber}` : 'Unknown'}
+                      </span>
+                    </div>
+                    <div className="p-2.5 rounded-2xl bg-slate-50 border border-slate-200/70">
+                      <span className="text-[10px] block uppercase font-bold text-slate-400">Column</span>
+                      <span className="text-sm font-mono font-bold text-[#0066ff]">
+                        {details.columnNumber ? `Col ${details.columnNumber}` : 'Unknown'}
+                      </span>
+                    </div>
                   </div>
                 </div>
 
-                {/* Detection Strategy */}
-                <div className={`flex items-center justify-between pt-2 border-t text-xs ${
-                  isLight ? 'border-slate-200' : 'border-slate-800/80'
-                }`}>
-                  <span className={isLight ? 'text-slate-500' : 'text-slate-400'}>Strategy:</span>
-                  <span className={`font-mono text-[11px] ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>
-                    {details.sourceStrategy === 'vite-plugin'
-                      ? 'Vite Plugin Metadata'
-                      : details.sourceStrategy === 'react-debug-source'
-                      ? 'React Fiber Debug Source'
-                      : details.sourceStrategy === 'vue-file'
-                      ? 'Vue SFC File'
-                      : 'Source Map'}
-                  </span>
-                </div>
+                {/* Bottom Action Buttons (exact match of "Cancel" and "Upload" pill buttons from design image) */}
+                <div className="flex items-center gap-3 pt-1">
+                  {/* Secondary Pill Button */}
+                  <button
+                    type="button"
+                    onClick={() => copyToClipboard(`${details.sourceFile}:${details.lineNumber || 1}:${details.columnNumber || 1}`, 'path-loc')}
+                    className="flex-1 py-3 px-4 rounded-full bg-white hover:bg-slate-50 border border-slate-200 text-slate-800 font-semibold text-xs transition-all shadow-xs active:scale-95 text-center flex items-center justify-center gap-1.5"
+                  >
+                    {copiedKey === 'path-loc' ? (
+                      <>
+                        <Check className="w-3.5 h-3.5 text-emerald-500" />
+                        <span>Copied!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3.5 h-3.5 text-slate-400" />
+                        <span>Copy Path</span>
+                      </>
+                    )}
+                  </button>
 
-                {/* Target Editor Action */}
-                <div className={`pt-2 border-t space-y-2 ${isLight ? 'border-slate-200' : 'border-slate-800/80'}`}>
-                  <div className="flex items-center justify-between text-xs">
-                    <span className={isLight ? 'text-slate-500' : 'text-slate-400'}>Target Editor:</span>
-                    <span className="font-semibold text-sky-400 capitalize">{ide}</span>
-                  </div>
+                  {/* Primary Vibrant Blue Pill Button */}
                   <button
                     type="button"
                     disabled={openStatus?.type === 'loading'}
                     onClick={() => {
-                      setOpenStatus({ type: 'loading', text: `Launching in ${ide}...` });
+                      setOpenStatus({ type: 'loading', text: `Opening in ${ide}...` });
                       chrome.runtime?.sendMessage?.(
                         {
                           type: MESSAGE_TYPES.OPEN_SOURCE_IN_IDE,
@@ -586,7 +454,6 @@ export default function InspectorPanel({
                         (response) => {
                           if (chrome.runtime.lastError || !response || !response.success) {
                             const errMessage = response?.message || chrome.runtime.lastError?.message || 'Could not launch IDE directly.';
-                            // Copy to clipboard as automatic fallback
                             const loc = `${details.sourceFile}:${details.lineNumber || 1}:${details.columnNumber || 1}`;
                             navigator.clipboard.writeText(loc);
                             setOpenStatus({
@@ -603,85 +470,121 @@ export default function InspectorPanel({
                         }
                       );
                     }}
-                    className="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-sky-500 hover:bg-sky-400 disabled:opacity-50 text-white font-semibold text-xs transition-colors shadow-md shadow-sky-950/20"
+                    className="flex-1 py-3 px-4 rounded-full bg-[#0066ff] hover:bg-[#0052cc] active:scale-95 text-white font-semibold text-xs transition-all shadow-[0_6px_20px_rgba(0,102,255,0.35)] flex items-center justify-center gap-2 text-center"
                   >
                     <ExternalLink className="w-3.5 h-3.5" />
                     <span>
                       {openStatus?.type === 'loading'
-                        ? 'Launching...'
+                        ? 'Opening...'
                         : `Open in ${ide.charAt(0).toUpperCase() + ide.slice(1)}`}
                     </span>
                   </button>
-
-                  {/* Status Banner */}
-                  {openStatus && (
-                    <div className={`p-2 rounded text-[11px] font-medium text-center ${
-                      openStatus.type === 'success'
-                        ? 'bg-emerald-950/40 text-emerald-300 border border-emerald-800/50'
-                        : openStatus.type === 'loading'
-                        ? 'bg-sky-950/40 text-sky-300 border border-sky-800/50'
-                        : 'bg-rose-950/40 text-rose-300 border border-rose-800/50'
-                    }`}>
-                      {openStatus.text}
-                    </div>
-                  )}
                 </div>
+
+                {/* Status Toast Banner */}
+                {openStatus && (
+                  <div className={`p-2.5 rounded-2xl text-xs font-medium text-center shadow-xs ${
+                    openStatus.type === 'success'
+                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                      : openStatus.type === 'loading'
+                      ? 'bg-blue-50 text-[#0066ff] border border-blue-200'
+                      : 'bg-rose-50 text-rose-700 border border-rose-200'
+                  }`}>
+                    {openStatus.text}
+                  </div>
+                )}
               </div>
             ) : (
-              <>
-                <div className={`p-4 rounded-lg border text-center space-y-2 ${
-                  isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-900/70 border-slate-800'
-                }`}>
-                  <FileCode className="w-8 h-8 text-amber-400 mx-auto opacity-70" />
-                  <h4 className={`text-xs font-semibold ${isLight ? 'text-slate-800' : 'text-slate-200'}`}>
-                    Source Location Metadata Not Available
-                  </h4>
-                  <p className={`text-[11px] leading-relaxed max-w-xs mx-auto ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-                    This element does not have DevLocator compilation metadata or React Fiber <code className="text-amber-500 font-mono">_debugSource</code> attached.
-                  </p>
-                </div>
-
-                <div className={`p-3 rounded-lg border space-y-2 text-xs ${
-                  isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-900/40 border-slate-800'
-                }`}>
-                  <span className={`text-[11px] font-semibold block ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>
-                    How to enable 1-click source jump:
-                  </span>
-                  <p className={`text-[11px] leading-relaxed ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-                    Add the DevLocator plugin to your <code className="text-sky-400 font-mono">vite.config.js</code> during development:
-                  </p>
-                  <pre className={`p-2 rounded font-mono text-[10px] text-sky-400 overflow-x-auto border ${
-                    isLight ? 'bg-white border-slate-200' : 'bg-slate-950 border-slate-800/80'
-                  }`}>
-                    <code>{`// vite.config.js\nimport devlocator from './integrations/vite-plugin';\n\nexport default {\n  plugins: [devlocator()],\n};`}</code>
+              <div className="p-5 rounded-3xl bg-white border border-slate-100 shadow-sm text-center space-y-3">
+                <FileCode className="w-10 h-10 text-amber-500 mx-auto opacity-70" />
+                <h4 className="text-xs font-bold text-slate-800">
+                  Source Metadata Not Available
+                </h4>
+                <p className="text-xs text-slate-400 leading-relaxed max-w-xs mx-auto">
+                  This element does not have DevLocator compilation metadata or React Fiber <code className="text-amber-600 font-mono">_debugSource</code> attached.
+                </p>
+                <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200/80 text-left text-xs space-y-1.5">
+                  <span className="font-semibold text-slate-700 block">How to enable 1-click jump:</span>
+                  <p className="text-[11px] text-slate-500">Add the DevLocator plugin in your <code className="text-[#0066ff] font-mono">vite.config.js</code>:</p>
+                  <pre className="p-2 rounded-xl bg-white border border-slate-200 font-mono text-[10px] text-[#0066ff] overflow-x-auto">
+                    <code>{`import devlocator from './integrations/vite-plugin';\nexport default { plugins: [devlocator()] };`}</code>
                   </pre>
                 </div>
-
-                <div className={`p-3 rounded-lg border flex items-center justify-between text-xs ${
-                  isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-900/40 border-slate-800'
-                }`}>
-                  <span className={isLight ? 'text-slate-500' : 'text-slate-400'}>Target Code Editor:</span>
-                  <span className="font-semibold text-sky-400 capitalize">{ide}</span>
-                </div>
-              </>
+              </div>
             )}
           </div>
         )}
       </div>
 
-      {/* Footer Status Bar */}
-      <div className={`px-3.5 py-2 border-t flex items-center justify-between text-[11px] ${
-        isLight ? 'bg-slate-50 border-slate-200 text-slate-500' : 'bg-slate-900/80 border-slate-800 text-slate-400'
-      }`}>
-        <span className="truncate max-w-[240px]">
-          Selector: <span className={`font-mono ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>{selector}</span>
-        </span>
+      {/* Floating Bottom Dock Bar (matching the bottom navigation bar with center + FAB in the design image) */}
+      <div className="px-3 py-2 bg-white/95 backdrop-blur-md border-t border-slate-100/90 flex items-center justify-around rounded-b-[32px] relative shadow-inner">
+        {/* Tab 1: Overview */}
         <button
           type="button"
-          onClick={() => copyToClipboard(selector, 'footer-selector')}
-          className="text-sky-400 hover:text-sky-300 font-medium"
+          onClick={() => setActiveTab('overview')}
+          className={`flex flex-col items-center gap-0.5 py-1 px-3 rounded-2xl transition-all ${
+            activeTab === 'overview'
+              ? 'text-[#0066ff] font-bold'
+              : 'text-slate-400 hover:text-slate-700'
+          }`}
         >
-          {copiedKey === 'footer-selector' ? 'Copied!' : 'Copy'}
+          <Info className="w-4 h-4" />
+          <span className="text-[10px]">Overview</span>
+        </button>
+
+        {/* Tab 2: Styles */}
+        <button
+          type="button"
+          onClick={() => setActiveTab('styles')}
+          className={`flex flex-col items-center gap-0.5 py-1 px-3 rounded-2xl transition-all ${
+            activeTab === 'styles'
+              ? 'text-[#0066ff] font-bold'
+              : 'text-slate-400 hover:text-slate-700'
+          }`}
+        >
+          <Sliders className="w-4 h-4" />
+          <span className="text-[10px]">Styles</span>
+        </button>
+
+        {/* Center Floating Action Button (FAB) for Re-inspecting (matches the + FAB in design image) */}
+        <button
+          type="button"
+          onClick={onReinspect}
+          className="w-11 h-11 -mt-5 rounded-full bg-white border border-slate-100 shadow-[0_6px_20px_rgba(0,0,0,0.12)] flex items-center justify-center text-slate-800 hover:text-[#0066ff] hover:scale-110 active:scale-95 transition-all shrink-0 z-10"
+          title="Pick Another Element"
+        >
+          <Plus className="w-5 h-5" />
+        </button>
+
+        {/* Tab 3: Component */}
+        <button
+          type="button"
+          onClick={() => setActiveTab('component')}
+          className={`flex flex-col items-center gap-0.5 py-1 px-3 rounded-2xl transition-all ${
+            activeTab === 'component'
+              ? 'text-[#0066ff] font-bold'
+              : 'text-slate-400 hover:text-slate-700'
+          }`}
+        >
+          <Layers className="w-4 h-4" />
+          <span className="text-[10px]">Component</span>
+        </button>
+
+        {/* Tab 4: Source */}
+        <button
+          type="button"
+          onClick={() => setActiveTab('source')}
+          className={`flex flex-col items-center gap-0.5 py-1 px-3 rounded-2xl transition-all relative ${
+            activeTab === 'source'
+              ? 'text-[#0066ff] font-bold'
+              : 'text-slate-400 hover:text-slate-700'
+          }`}
+        >
+          <FileCode className="w-4 h-4" />
+          <span className="text-[10px]">Source</span>
+          {details.sourceFile && (
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 absolute top-0.5 right-2" />
+          )}
         </button>
       </div>
     </div>

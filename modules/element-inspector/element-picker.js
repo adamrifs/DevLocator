@@ -99,42 +99,43 @@ export class ElementPicker {
     this.banner.setAttribute(DEVLOCATOR_ATTRIBUTE, 'true');
     this.banner.style.cssText = `
       position: fixed;
-      top: 14px;
+      top: 16px;
       left: 50%;
       transform: translateX(-50%);
       display: flex;
       align-items: center;
       gap: 12px;
-      padding: 6px 14px;
-      background: rgba(15, 23, 42, 0.95);
-      border: 1px solid rgba(56, 189, 248, 0.4);
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.05);
+      padding: 7px 16px;
+      background: rgba(255, 255, 255, 0.96);
+      border: 1px solid rgba(226, 232, 240, 0.95);
+      box-shadow: 0 14px 38px -6px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.04);
       border-radius: 9999px;
       z-index: 2147483647;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       font-size: 12px;
       font-weight: 500;
-      color: #f8fafc;
+      color: #18181b;
       user-select: none;
-      backdrop-filter: blur(8px);
+      backdrop-filter: blur(12px);
     `;
 
     this.banner.innerHTML = `
-      <div style="display: flex; align-items: center; gap: 6px;">
-        <span style="display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #38bdf8; box-shadow: 0 0 8px #38bdf8;"></span>
-        <strong style="color: #38bdf8; font-weight: 600;">DevLocator</strong>
+      <div style="display: flex; align-items: center; gap: 7px;">
+        <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #0066ff; box-shadow: 0 0 10px rgba(0,102,255,0.6);"></span>
+        <strong style="color: #0066ff; font-weight: 700;">DevLocator</strong>
       </div>
-      <span style="color: #94a3b8; font-size: 11px;">Hold Shift &bull; Click to inspect &bull; &uarr;/&darr; Parent/Child &bull; Release Shift / <kbd style="background: rgba(255,255,255,0.1); padding: 1px 4px; border-radius: 3px; font-family: monospace;">Esc</kbd></span>
+      <span style="color: #64748b; font-size: 11px;">Hold Shift &bull; Click to inspect &bull; &uarr;/&darr; Parent/Child &bull; Release Shift / <kbd style="background: #f1f5f9; border: 1px solid #e2e8f0; color: #18181b; padding: 1px 5px; border-radius: 4px; font-family: monospace;">Esc</kbd></span>
       <button id="__devlocator-exit-btn__" type="button" style="
-        background: rgba(244, 63, 94, 0.2);
-        color: #f43f5e;
-        border: 1px solid rgba(244, 63, 94, 0.4);
-        border-radius: 12px;
-        padding: 2px 8px;
-        font-size: 10px;
+        background: #f1f5f9;
+        color: #64748b;
+        border: 1px solid #e2e8f0;
+        border-radius: 9999px;
+        padding: 3px 10px;
+        font-size: 11px;
         font-weight: 600;
         cursor: pointer;
         outline: none;
+        transition: all 0.15s ease;
       ">Exit</button>
     `;
 
