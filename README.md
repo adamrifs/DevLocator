@@ -44,3 +44,4 @@ DevLocator/
 3. Click **Load unpacked**.
 4. Select the `.output/chrome-mv3` folder inside this directory (`/home/adam/Documents/DevLocator/.output/chrome-mv3`).
 5. DevLocator is now active and its icon will appear in the Chrome toolbar.
+
