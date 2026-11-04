@@ -13,6 +13,9 @@ export class ElementPicker {
     this.onSelectCallback = null;
     this.onCancelCallback = null;
     this.banner = null;
+    this.rafId = null;
+    this.lastMousePos = null;
+    this.currentHovered = null;
 
     // Bound event handlers for clean addition and removal
     this.handleMouseMove = this.handleMouseMove.bind(this);
@@ -59,6 +62,12 @@ export class ElementPicker {
     if (!this.isActive) return;
 
     this.isActive = false;
+
+    if (this.rafId) {
+      cancelAnimationFrame(this.rafId);
+      this.rafId = null;
+    }
+    this.currentHovered = null;
 
     // Remove event listeners
     window.removeEventListener('mousemove', this.handleMouseMove, { capture: true });
@@ -114,7 +123,7 @@ export class ElementPicker {
         <span style="display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #38bdf8; box-shadow: 0 0 8px #38bdf8;"></span>
         <strong style="color: #38bdf8; font-weight: 600;">DevLocator</strong>
       </div>
-      <span style="color: #94a3b8; font-size: 11px;">Click to select &bull; <kbd style="background: rgba(255,255,255,0.1); padding: 1px 4px; border-radius: 3px; font-family: monospace;">Esc</kbd> to exit</span>
+      <span style="color: #94a3b8; font-size: 11px;">Click / Enter to inspect &bull; &uarr;/&darr; Parent/Child &bull; &larr;/&rarr; Siblings &bull; <kbd style="background: rgba(255,255,255,0.1); padding: 1px 4px; border-radius: 3px; font-family: monospace;">Esc</kbd> to exit</span>
       <button id="__devlocator-exit-btn__" type="button" style="
         background: rgba(244, 63, 94, 0.2);
         color: #f43f5e;
@@ -178,19 +187,29 @@ export class ElementPicker {
   }
 
   /**
-   * Mouse move event handler to detect and highlight elements.
+   * Mouse move event handler with requestAnimationFrame throttling for optimal 60fps performance.
    */
   handleMouseMove(event) {
     if (!this.isActive) return;
 
-    const target = this.getElementAtPoint(event.clientX, event.clientY);
+    this.lastMousePos = { x: event.clientX, y: event.clientY };
 
-    // Skip if target is null, root document, or DevLocator's own UI
-    if (!target || target === document.documentElement || target === document.body || isDevLocatorElement(target)) {
-      return;
+    if (!this.rafId) {
+      this.rafId = requestAnimationFrame(() => {
+        this.rafId = null;
+        if (!this.isActive || !this.lastMousePos) return;
+
+        const target = this.getElementAtPoint(this.lastMousePos.x, this.lastMousePos.y);
+
+        // Skip if target is null, root document, or DevLocator's own UI
+        if (!target || target === document.documentElement || target === document.body || isDevLocatorElement(target)) {
+          return;
+        }
+
+        this.currentHovered = target;
+        this.highlighter.highlight(target);
+      });
     }
-
-    this.highlighter.highlight(target);
   }
 
   /**
@@ -223,15 +242,68 @@ export class ElementPicker {
   }
 
   /**
-   * Escape key handler to cancel inspection.
+   * Keyboard shortcuts handler during inspection (Esc, ArrowUp for parent, ArrowDown for child, Enter to select).
    */
-  handleKeyDown(event) {
+  async handleKeyDown(event) {
     if (!this.isActive) return;
 
     if (event.key === 'Escape' || event.key === 'Esc') {
       event.preventDefault();
       event.stopPropagation();
       this.cancel();
+      return;
+    }
+
+    // ArrowUp: Navigate to parent element
+    if (event.key === 'ArrowUp') {
+      if (this.currentHovered && this.currentHovered.parentElement && !isDevLocatorElement(this.currentHovered.parentElement)) {
+        event.preventDefault();
+        this.currentHovered = this.currentHovered.parentElement;
+        this.highlighter.highlight(this.currentHovered);
+      }
+      return;
+    }
+
+    // ArrowDown: Navigate to first child element
+    if (event.key === 'ArrowDown') {
+      if (this.currentHovered && this.currentHovered.firstElementChild && !isDevLocatorElement(this.currentHovered.firstElementChild)) {
+        event.preventDefault();
+        this.currentHovered = this.currentHovered.firstElementChild;
+        this.highlighter.highlight(this.currentHovered);
+      }
+      return;
+    }
+
+    // ArrowRight: Navigate to next sibling element
+    if (event.key === 'ArrowRight') {
+      if (this.currentHovered && this.currentHovered.nextElementSibling && !isDevLocatorElement(this.currentHovered.nextElementSibling)) {
+        event.preventDefault();
+        this.currentHovered = this.currentHovered.nextElementSibling;
+        this.highlighter.highlight(this.currentHovered);
+      }
+      return;
+    }
+
+    // ArrowLeft: Navigate to previous sibling element
+    if (event.key === 'ArrowLeft') {
+      if (this.currentHovered && this.currentHovered.previousElementSibling && !isDevLocatorElement(this.currentHovered.previousElementSibling)) {
+        event.preventDefault();
+        this.currentHovered = this.currentHovered.previousElementSibling;
+        this.highlighter.highlight(this.currentHovered);
+      }
+      return;
+    }
+
+    // Enter: Select currently hovered element
+    if (event.key === 'Enter') {
+      if (this.currentHovered) {
+        event.preventDefault();
+        const details = await extractElementDetails(this.currentHovered);
+        if (this.onSelectCallback) {
+          this.onSelectCallback(this.currentHovered, details);
+        }
+        this.stop();
+      }
     }
   }
 

@@ -8,6 +8,7 @@ import {
   DEVLOCATOR_ATTRIBUTE,
   extractElementDetails,
 } from '../modules/element-inspector/element-details.js';
+import { getSettings, onSettingsChange } from '../utils/storage.js';
 import InspectorPanel from '../components/inspector/InspectorPanel.jsx';
 import contentCss from '../assets/content.css?inline';
 
@@ -18,8 +19,29 @@ export default defineContentScript({
     let picker = null;
     let currentSettings = null;
     let lastSelectedDetails = null;
+    let currentSelectedElement = null;
 
     ensureMainWorldBridge();
+
+    // Load initial settings and listen for live changes across all tabs
+    getSettings().then((loaded) => {
+      currentSettings = loaded;
+    });
+
+    onSettingsChange((newSettings) => {
+      currentSettings = newSettings;
+      if (picker && picker.highlighter) {
+        picker.highlighter.updateConfig({
+          highlightColor: newSettings.highlightColor,
+          showTooltip: newSettings.showTooltip,
+          fillOpacity: newSettings.fillOpacity,
+        });
+      }
+      // If inspector panel is currently open, re-render it immediately with updated theme & settings
+      if (lastSelectedDetails && document.getElementById(DEVLOCATOR_PANEL_HOST_ID)) {
+        renderInspectorPanel(lastSelectedDetails, currentSettings);
+      }
+    });
 
     /**
      * Ensures main-world bridge is injected and running.
@@ -95,26 +117,45 @@ export default defineContentScript({
 
       const handleReinspect = () => {
         removeInspectorPanel();
-        startInspection(settings);
+        startInspection(settings || currentSettings);
       };
 
-      const handleSelectAncestor = async (ancestorItem) => {
+      const handleSelectAncestor = async (item) => {
         try {
-          const el = document.querySelector(ancestorItem.selector);
-          if (el) {
-            const newDetails = await extractElementDetails(el);
+          let targetEl = null;
+
+          // 1. If currently selected element is tracked, navigate directly
+          if (currentSelectedElement) {
+            if (item.selector && currentSelectedElement.matches && currentSelectedElement.matches(item.selector)) {
+              targetEl = currentSelectedElement;
+            } else if (item.selector && currentSelectedElement.closest) {
+              targetEl = currentSelectedElement.closest(item.selector);
+            }
+          }
+
+          // 2. Query within document if not resolved
+          if (!targetEl && item.selector) {
+            targetEl = document.querySelector(item.selector);
+          }
+
+          if (targetEl) {
+            currentSelectedElement = targetEl;
+            const newDetails = await extractElementDetails(targetEl);
             lastSelectedDetails = newDetails;
-            renderInspectorPanel(newDetails, settings);
+            renderInspectorPanel(newDetails, settings || currentSettings);
           }
         } catch (e) {
-          console.warn('[DevLocator] Failed to select ancestor:', e);
+          console.warn('[DevLocator] Failed to select ancestor/child:', e);
         }
       };
+
+      const effectiveSettings = settings || currentSettings;
 
       root.render(
         React.createElement(InspectorPanel, {
           details,
-          ide: settings?.ide || 'antigravity',
+          ide: effectiveSettings?.ide || 'antigravity',
+          theme: effectiveSettings?.theme || 'dark',
           onClose: handleClose,
           onReinspect: handleReinspect,
           onSelectAncestor: handleSelectAncestor,
@@ -127,15 +168,19 @@ export default defineContentScript({
      * Starts element inspection mode.
      */
     function startInspection(settings) {
+      const effectiveSettings = settings || currentSettings;
+
       if (!picker) {
         picker = new ElementPicker({
-          highlightColor: settings?.highlightColor || '#38bdf8',
-          showTooltip: settings?.showTooltip !== false,
+          highlightColor: effectiveSettings?.highlightColor || '#38bdf8',
+          showTooltip: effectiveSettings?.showTooltip !== false,
+          fillOpacity: typeof effectiveSettings?.fillOpacity === 'number' ? effectiveSettings.fillOpacity : 0.15,
         });
       } else {
         picker.highlighter.updateConfig({
-          highlightColor: settings?.highlightColor,
-          showTooltip: settings?.showTooltip,
+          highlightColor: effectiveSettings?.highlightColor,
+          showTooltip: effectiveSettings?.showTooltip,
+          fillOpacity: effectiveSettings?.fillOpacity,
         });
       }
 
@@ -145,11 +190,12 @@ export default defineContentScript({
       picker.start(
         // onSelect
         (element, details) => {
+          currentSelectedElement = element;
           lastSelectedDetails = details;
           console.log('[DevLocator] Element selected:', details);
 
           // Render inspector panel on webpage
-          renderInspectorPanel(details, settings || currentSettings);
+          renderInspectorPanel(details, effectiveSettings);
 
           // Notify extension
           chrome.runtime.sendMessage({
@@ -187,7 +233,7 @@ export default defineContentScript({
         }
 
         case MESSAGE_TYPES.START_INSPECTION: {
-          currentSettings = message.settings || null;
+          currentSettings = message.settings || currentSettings;
           startInspection(currentSettings);
           sendResponse({ success: true, isInspecting: true });
           return true;

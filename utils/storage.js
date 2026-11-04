@@ -4,10 +4,11 @@
 
 export const DEFAULT_SETTINGS = {
   ide: 'antigravity',
-  theme: 'dark',
+  theme: 'dark', // 'dark' | 'light'
   highlightColor: '#38bdf8',
   showTooltip: true,
   shortcut: 'Alt+Shift+X',
+  fillOpacity: 0.15,
 };
 
 const STORAGE_KEYS = {
@@ -53,3 +54,28 @@ export async function saveSettings(partialSettings) {
   }
 }
 
+/**
+ * Subscribes to settings updates in chrome.storage.
+ * @param {(newSettings: typeof DEFAULT_SETTINGS) => void} callback
+ * @returns {() => void} Cleanup unsubscribe function
+ */
+export function onSettingsChange(callback) {
+  if (typeof chrome === 'undefined' || !chrome.storage?.onChanged) {
+    return () => {};
+  }
+
+  const listener = (changes, areaName) => {
+    if (areaName === 'local' && changes[STORAGE_KEYS.SETTINGS]) {
+      const newSettings = {
+        ...DEFAULT_SETTINGS,
+        ...(changes[STORAGE_KEYS.SETTINGS].newValue || {}),
+      };
+      callback(newSettings);
+    }
+  };
+
+  chrome.storage.onChanged.addListener(listener);
+  return () => {
+    chrome.storage.onChanged.removeListener(listener);
+  };
+}

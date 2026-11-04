@@ -8,6 +8,7 @@ export class ElementHighlighter {
   constructor(options = {}) {
     this.highlightColor = options.highlightColor || '#38bdf8';
     this.showTooltip = options.showTooltip !== false;
+    this.fillOpacity = typeof options.fillOpacity === 'number' ? options.fillOpacity : 0.15;
     this.container = null;
     this.highlightBox = null;
     this.tooltip = null;
@@ -24,6 +25,9 @@ export class ElementHighlighter {
     }
     if (typeof options.showTooltip === 'boolean') {
       this.showTooltip = options.showTooltip;
+    }
+    if (typeof options.fillOpacity === 'number') {
+      this.fillOpacity = options.fillOpacity;
     }
   }
 
@@ -147,7 +151,7 @@ export class ElementHighlighter {
     this.highlightBox.style.width = `${rect.width}px`;
     this.highlightBox.style.height = `${rect.height}px`;
     this.highlightBox.style.borderColor = this.highlightColor;
-    this.highlightBox.style.backgroundColor = this.getFillColor(this.highlightColor);
+    this.highlightBox.style.backgroundColor = this.getFillColor(this.highlightColor, this.fillOpacity);
 
     // Build and position tooltip
     if (this.showTooltip) {

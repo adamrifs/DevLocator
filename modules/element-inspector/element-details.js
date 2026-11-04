@@ -329,6 +329,26 @@ export async function extractElementDetails(element) {
   const finalStrategy = sourceLoc.file ? sourceLoc.strategy : (frameworkInfo.sourceFile ? 'react-debug-source' : 'none');
   const isSourceVerified = Boolean(finalSourceFile && (sourceLoc.verified || frameworkInfo.sourceFile));
 
+  // Parent & Child elements for hierarchy navigation
+  const parent = element.parentElement && !isDevLocatorElement(element.parentElement) && element.parentElement !== document.documentElement
+    ? {
+        tagName: element.parentElement.tagName.toLowerCase(),
+        id: element.parentElement.id || '',
+        className: typeof element.parentElement.className === 'string' ? element.parentElement.className : '',
+        selector: getElementSelector(element.parentElement),
+      }
+    : null;
+
+  const children = Array.from(element.children)
+    .filter((child) => !isDevLocatorElement(child))
+    .slice(0, 12)
+    .map((child) => ({
+      tagName: child.tagName.toLowerCase(),
+      id: child.id || '',
+      className: typeof child.className === 'string' ? child.className : '',
+      selector: getElementSelector(child),
+    }));
+
   return {
     tagName,
     id,
@@ -336,6 +356,8 @@ export async function extractElementDetails(element) {
     className: element.className && typeof element.className === 'string' ? element.className : '',
     selector: getElementSelector(element),
     xpath: getElementXPath(element),
+    parent,
+    children,
     dimensions: {
       width: Math.round(rect.width * 10) / 10,
       height: Math.round(rect.height * 10) / 10,
