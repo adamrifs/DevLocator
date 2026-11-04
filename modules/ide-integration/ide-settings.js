@@ -46,8 +46,8 @@ export function getEditorUrl(ide, filePath, line = 1, column = 1) {
       return `vscode://file${cleanPath}:${targetLine}:${targetCol}`;
     case SUPPORTED_IDES.ANTIGRAVITY:
     default:
-      // Antigravity supports both antigravity:// and standard vscode-compatible URL protocols
-      return `antigravity://file${cleanPath}:${targetLine}:${targetCol}`;
+      // On Linux, Antigravity IDE registers x-scheme-handler/vscode and x-scheme-handler/antigravity-ide
+      return `vscode://file${cleanPath}:${targetLine}:${targetCol}`;
   }
 }
 
