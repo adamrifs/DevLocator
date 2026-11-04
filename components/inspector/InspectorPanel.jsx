@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import ElementDetails from './ElementDetails.jsx';
 import ComponentTree from './ComponentTree.jsx';
+import { MESSAGE_TYPES } from '../../utils/messages.js';
 
 const TABS = [
   { id: 'overview', label: 'Overview', icon: Info },
@@ -40,6 +41,7 @@ export default function InspectorPanel({
   const [isMinimized, setIsMinimized] = useState(false);
   const [copiedKey, setCopiedKey] = useState(null);
   const [styleFilter, setStyleFilter] = useState('');
+  const [openStatus, setOpenStatus] = useState(null); // { type: 'loading'|'success'|'error', text: string }
 
   if (!details) return null;
 
@@ -441,19 +443,60 @@ export default function InspectorPanel({
                   </div>
                   <button
                     type="button"
+                    disabled={openStatus?.type === 'loading'}
                     onClick={() => {
-                      const locationStr = `${details.sourceFile}:${details.lineNumber || 1}:${details.columnNumber || 1}`;
-                      copyToClipboard(locationStr, 'ide-location');
+                      setOpenStatus({ type: 'loading', text: `Launching in ${ide}...` });
+                      chrome.runtime?.sendMessage?.(
+                        {
+                          type: MESSAGE_TYPES.OPEN_SOURCE_IN_IDE,
+                          payload: {
+                            file: details.sourceFile,
+                            line: details.lineNumber || 1,
+                            column: details.columnNumber || 1,
+                            ide,
+                          },
+                        },
+                        (response) => {
+                          if (chrome.runtime.lastError || !response || !response.success) {
+                            const errMessage = response?.message || chrome.runtime.lastError?.message || 'Could not launch IDE directly.';
+                            // Copy to clipboard as automatic fallback
+                            const loc = `${details.sourceFile}:${details.lineNumber || 1}:${details.columnNumber || 1}`;
+                            navigator.clipboard.writeText(loc);
+                            setOpenStatus({
+                              type: 'error',
+                              text: `${errMessage} (Location copied)`,
+                            });
+                          } else {
+                            setOpenStatus({
+                              type: 'success',
+                              text: response.message || `Opened in ${ide}!`,
+                            });
+                          }
+                          setTimeout(() => setOpenStatus(null), 4000);
+                        }
+                      );
                     }}
-                    className="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-sky-500 hover:bg-sky-400 text-white font-semibold text-xs transition-colors shadow-md shadow-sky-950/50"
+                    className="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-sky-500 hover:bg-sky-400 disabled:opacity-50 text-white font-semibold text-xs transition-colors shadow-md shadow-sky-950/50"
                   >
                     <ExternalLink className="w-3.5 h-3.5" />
-                    <span>Open in {ide.charAt(0).toUpperCase() + ide.slice(1)}</span>
-                  </button>
-                  {copiedKey === 'ide-location' && (
-                    <span className="text-[11px] text-emerald-400 text-center block">
-                      Target location copied for IDE launch!
+                    <span>
+                      {openStatus?.type === 'loading'
+                        ? 'Launching...'
+                        : `Open in ${ide.charAt(0).toUpperCase() + ide.slice(1)}`}
                     </span>
+                  </button>
+
+                  {/* Status Banner */}
+                  {openStatus && (
+                    <div className={`p-2 rounded text-[11px] font-medium text-center ${
+                      openStatus.type === 'success'
+                        ? 'bg-emerald-950/40 text-emerald-300 border border-emerald-800/50'
+                        : openStatus.type === 'loading'
+                        ? 'bg-sky-950/40 text-sky-300 border border-sky-800/50'
+                        : 'bg-rose-950/40 text-rose-300 border border-rose-800/50'
+                    }`}>
+                      {openStatus.text}
+                    </div>
                   )}
                 </div>
               </div>

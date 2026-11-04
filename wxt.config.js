@@ -11,6 +11,7 @@ export default defineConfig({
       'storage',
       'activeTab',
       'scripting',
+      'nativeMessaging',
     ],
     action: {
       default_title: 'DevLocator',

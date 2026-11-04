@@ -83,3 +83,4 @@ export function formatSourceLocation(file, line, column) {
   }
   return loc;
 }
+

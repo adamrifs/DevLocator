@@ -112,3 +112,4 @@ export default function devlocatorPlugin(options = {}) {
 }
 
 export { devlocatorPlugin };
+

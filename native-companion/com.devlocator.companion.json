@@ -1,0 +1,9 @@
+{
+  "name": "com.devlocator.companion",
+  "description": "DevLocator Native Messaging Host for IDE Integration",
+  "path": "/home/adam/Documents/DevLocator/native-companion/devlocator_host.py",
+  "type": "stdio",
+  "allowed_origins": [
+    "chrome-extension://*/"
+  ]
+}

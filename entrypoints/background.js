@@ -1,6 +1,7 @@
 import { defineBackground } from 'wxt/sandbox';
 import { MESSAGE_TYPES, isValidMessage } from '../utils/messages.js';
 import { getSettings } from '../utils/storage.js';
+import { openSourceInIDE } from '../modules/ide-integration/ide-connector.js';
 
 export default defineBackground(() => {
   console.log('[DevLocator] Background service worker initialized.');
@@ -67,6 +68,13 @@ export default defineBackground(() => {
 
     if (message.type === MESSAGE_TYPES.GET_INSPECTION_STATUS) {
       sendResponse({ status: 'ok' });
+      return true;
+    }
+
+    if (message.type === MESSAGE_TYPES.OPEN_SOURCE_IN_IDE) {
+      openSourceInIDE(message.payload).then((result) => {
+        sendResponse(result);
+      });
       return true;
     }
 

@@ -117,3 +117,4 @@ function createEmptySourceResult() {
     confidence: 'low',
   };
 }
+
