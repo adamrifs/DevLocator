@@ -1,0 +1,15 @@
+{
+  "name": "vite-plugin-devlocator",
+  "version": "0.1.0",
+  "description": "DevLocator Vite plugin to inject source code locations into JSX during development",
+  "main": "index.js",
+  "type": "module",
+  "keywords": ["vite", "devlocator", "vite-plugin", "locatorjs", "react", "jsx"],
+  "peerDependencies": {
+    "vite": "^4.0.0 || ^5.0.0 || ^6.0.0"
+  },
+  "dependencies": {
+    "@babel/parser": "^7.24.0",
+    "magic-string": "^0.30.8"
+  }
+}

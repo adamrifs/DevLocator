@@ -7,7 +7,8 @@
   "scripts": {
     "dev": "wxt",
     "build": "wxt build",
-    "zip": "wxt zip"
+    "zip": "wxt zip",
+    "test": "node scripts/test-suite.js && python3 scripts/test-native-host.py"
   },
   "dependencies": {
     "lucide-react": "^0.460.0",
