@@ -14,6 +14,8 @@ import {
   ExternalLink,
   ArrowUp,
   ArrowDown,
+  Copy,
+  Check,
 } from 'lucide-react';
 import ElementDetails from './ElementDetails.jsx';
 import ComponentTree from './ComponentTree.jsx';

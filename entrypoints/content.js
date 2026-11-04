@@ -10,6 +10,7 @@ import {
 } from '../modules/element-inspector/element-details.js';
 import { getSettings, onSettingsChange } from '../utils/storage.js';
 import InspectorPanel from '../components/inspector/InspectorPanel.jsx';
+import ErrorBoundary from '../components/ui/ErrorBoundary.jsx';
 import contentCss from '../assets/content.css?inline';
 
 export default defineContentScript({
@@ -152,15 +153,19 @@ export default defineContentScript({
       const effectiveSettings = settings || currentSettings;
 
       root.render(
-        React.createElement(InspectorPanel, {
-          details,
-          ide: effectiveSettings?.ide || 'antigravity',
-          theme: effectiveSettings?.theme || 'dark',
-          onClose: handleClose,
-          onReinspect: handleReinspect,
-          onSelectAncestor: handleSelectAncestor,
-          isEmbedded: false,
-        })
+        React.createElement(
+          ErrorBoundary,
+          null,
+          React.createElement(InspectorPanel, {
+            details,
+            ide: effectiveSettings?.ide || 'antigravity',
+            theme: effectiveSettings?.theme || 'dark',
+            onClose: handleClose,
+            onReinspect: handleReinspect,
+            onSelectAncestor: handleSelectAncestor,
+            isEmbedded: false,
+          })
+        )
       );
     }
 

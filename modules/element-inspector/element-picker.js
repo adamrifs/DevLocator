@@ -22,6 +22,7 @@ export class ElementPicker {
     this.handleClick = this.handleClick.bind(this);
     this.handleKeyDown = this.handleKeyDown.bind(this);
     this.handleScrollOrResize = this.handleScrollOrResize.bind(this);
+    this.preventDefaultOnly = this.preventDefaultOnly.bind(this);
   }
 
   /**
