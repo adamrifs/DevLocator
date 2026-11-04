@@ -12,6 +12,12 @@
 export function isReactElement(element) {
   if (!element || !(element instanceof Element)) return false;
 
+  // Check page framework tag set by main world bridge
+  const pageFw = document.documentElement.getAttribute('data-devlocator-page-framework');
+  if (pageFw && (pageFw.includes('React') || pageFw.includes('Next'))) {
+    return true;
+  }
+
   // 1. Direct Fiber node check on element or ancestors
   if (getReactFiber(element)) {
     return true;
@@ -58,14 +64,26 @@ export function getReactFiber(element) {
   let current = element;
   let depth = 0;
 
-  while (current && depth < 15) {
-    const keys = Object.keys(current);
+  while (current && depth < 20) {
+    let keys = [];
+    try {
+      keys = Object.getOwnPropertyNames(current);
+    } catch (e) {
+      keys = Object.keys(current);
+    }
+
     const fiberKey = keys.find(
       (key) => key.startsWith('__reactFiber$') || key.startsWith('__reactInternalInstance$')
     );
 
     if (fiberKey && current[fiberKey]) {
       return current[fiberKey];
+    }
+
+    // Check container on root element
+    const containerKey = keys.find((key) => key.startsWith('__reactContainer$'));
+    if (containerKey && current[containerKey]) {
+      return current[containerKey]?.current;
     }
 
     current = current.parentElement;

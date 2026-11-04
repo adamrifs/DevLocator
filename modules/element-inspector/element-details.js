@@ -228,46 +228,70 @@ export function getFormattedHTML(element) {
 }
 
 /**
- * Queries framework metadata from the main-world bridge via synchronous CustomEvent dispatch.
+ * Queries framework metadata from the main-world bridge via postMessage.
  * @param {Element} element
- * @returns {object|null}
+ * @returns {Promise<object|null>}
  */
 export function queryMainWorldFramework(element) {
-  if (!element || !(element instanceof Element)) return null;
-
-  let result = null;
-  const handleResponse = (event) => {
-    try {
-      if (typeof event.detail === 'string') {
-        result = JSON.parse(event.detail);
-      } else if (event.detail) {
-        result = event.detail;
-      }
-    } catch (e) {
-      // Ignore parse error
+  return new Promise((resolve) => {
+    if (!element || !(element instanceof Element)) {
+      resolve(null);
+      return;
     }
-  };
 
-  window.addEventListener('__DEVLOCATOR_INSPECT_RESPONSE__', handleResponse, { once: true });
+    const requestId = `req_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+    let resolved = false;
 
-  element.dispatchEvent(
-    new CustomEvent('__DEVLOCATOR_INSPECT_REQUEST__', {
-      bubbles: true,
-      cancelable: true,
-    })
-  );
+    // Mark the element temporarily so the main-world bridge can locate it accurately
+    element.setAttribute('data-devlocator-inspect-target', 'true');
 
-  window.removeEventListener('__DEVLOCATOR_INSPECT_RESPONSE__', handleResponse);
+    const handleMessage = (event) => {
+      if (
+        event.data &&
+        event.data.source === 'DEVLOCATOR_MAIN' &&
+        event.data.action === 'INSPECT_RESULT' &&
+        event.data.requestId === requestId
+      ) {
+        if (!resolved) {
+          resolved = true;
+          window.removeEventListener('message', handleMessage);
+          element.removeAttribute('data-devlocator-inspect-target');
+          resolve(event.data.frameworkInfo || null);
+        }
+      }
+    };
 
-  return result;
+    window.addEventListener('message', handleMessage);
+
+    // Send postMessage to main world
+    window.postMessage(
+      {
+        source: 'DEVLOCATOR_ISOLATED',
+        action: 'INSPECT_ELEMENT',
+        requestId,
+        selector: getElementSelector(element),
+      },
+      '*'
+    );
+
+    // Quick fallback timeout (75ms) if main world does not respond
+    setTimeout(() => {
+      if (!resolved) {
+        resolved = true;
+        window.removeEventListener('message', handleMessage);
+        element.removeAttribute('data-devlocator-inspect-target');
+        resolve(null);
+      }
+    }, 75);
+  });
 }
 
 /**
  * Extracts comprehensive details from a DOM element.
  * @param {Element} element
- * @returns {object|null}
+ * @returns {Promise<object|null>}
  */
-export function extractElementDetails(element) {
+export async function extractElementDetails(element) {
   if (!element || !(element instanceof Element)) {
     return null;
   }
@@ -290,8 +314,8 @@ export function extractElementDetails(element) {
   const domHierarchy = getDomHierarchy(element);
   const outerHTML = getFormattedHTML(element);
 
-  // Try main-world bridge first for direct access to Fiber/Vue/Angular JS objects, then fallback to local detection
-  const bridgeInfo = queryMainWorldFramework(element);
+  // Query main-world bridge for Fiber/Vue/Angular JS objects, with local fallback
+  const bridgeInfo = await queryMainWorldFramework(element);
   const frameworkInfo = (bridgeInfo && bridgeInfo.framework !== 'Vanilla HTML')
     ? bridgeInfo
     : detectFramework(element);

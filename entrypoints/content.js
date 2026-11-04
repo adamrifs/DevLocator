@@ -19,6 +19,24 @@ export default defineContentScript({
     let currentSettings = null;
     let lastSelectedDetails = null;
 
+    ensureMainWorldBridge();
+
+    /**
+     * Ensures main-world bridge is injected and running.
+     */
+    function ensureMainWorldBridge() {
+      if (document.documentElement.getAttribute('data-devlocator-bridge-ready')) {
+        return;
+      }
+      try {
+        const script = document.createElement('script');
+        script.src = chrome.runtime.getURL('content-scripts/bridge.js');
+        (document.head || document.documentElement).appendChild(script);
+      } catch (e) {
+        // Fallback
+      }
+    }
+
     /**
      * Unmounts and removes the floating inspector panel from the page.
      */
@@ -80,11 +98,11 @@ export default defineContentScript({
         startInspection(settings);
       };
 
-      const handleSelectAncestor = (ancestorItem) => {
+      const handleSelectAncestor = async (ancestorItem) => {
         try {
           const el = document.querySelector(ancestorItem.selector);
           if (el) {
-            const newDetails = extractElementDetails(el);
+            const newDetails = await extractElementDetails(el);
             lastSelectedDetails = newDetails;
             renderInspectorPanel(newDetails, settings);
           }

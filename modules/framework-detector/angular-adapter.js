@@ -12,6 +12,11 @@
 export function isAngularElement(element) {
   if (!element || !(element instanceof Element)) return false;
 
+  const pageFw = document.documentElement.getAttribute('data-devlocator-page-framework');
+  if (pageFw && pageFw.includes('Angular')) {
+    return true;
+  }
+
   // Check attributes on the element
   for (let i = 0; i < element.attributes.length; i++) {
     const name = element.attributes[i].name;

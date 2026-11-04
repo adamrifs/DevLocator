@@ -196,7 +196,7 @@ export class ElementPicker {
   /**
    * Click event handler: prevents original website actions and selects the element.
    */
-  handleClick(event) {
+  async handleClick(event) {
     if (!this.isActive) return;
 
     const target = event.target;
@@ -212,7 +212,7 @@ export class ElementPicker {
     event.stopImmediatePropagation();
 
     const selectedTarget = this.getElementAtPoint(event.clientX, event.clientY) || target;
-    const details = extractElementDetails(selectedTarget);
+    const details = await extractElementDetails(selectedTarget);
 
     if (this.onSelectCallback) {
       this.onSelectCallback(selectedTarget, details);

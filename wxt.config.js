@@ -36,5 +36,11 @@ export default defineConfig({
         description: 'Toggle DevLocator Inspection Mode',
       },
     },
+    web_accessible_resources: [
+      {
+        resources: ['content-scripts/bridge.js'],
+        matches: ['<all_urls>'],
+      },
+    ],
   },
 });

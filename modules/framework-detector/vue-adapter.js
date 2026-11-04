@@ -12,6 +12,11 @@
 export function isVueElement(element) {
   if (!element || !(element instanceof Element)) return false;
 
+  const pageFw = document.documentElement.getAttribute('data-devlocator-page-framework');
+  if (pageFw && pageFw.includes('Vue')) {
+    return true;
+  }
+
   // Direct element properties (Vue 3: __vueParentComponent, __vue_app__; Vue 2: __vue__)
   if (element.__vueParentComponent || element.__vue_app__ || element.__vue__ || element._vnode) {
     return true;
