@@ -1,13 +1,11 @@
-import React, { useState } from 'react';
-import { Copy, Check, Hash, Tag, Box, Navigation, FileCode, CornerDownRight, Layers, Sparkles } from 'lucide-react';
+import React from 'react';
+import { Hash, Box, CornerDownRight } from 'lucide-react';
 
 /**
- * ElementDetails renders the Overview tab of the selected DOM element
- * using the modern soft-UI / iOS-inspired card aesthetic.
+ * ElementDetails renders the secondary inspection details for the Overview tab
+ * (Box Model & Geometry, Direct Children, HTML Attributes, Text Preview).
  */
 export default function ElementDetails({ details, onSelectChild }) {
-  const [copiedKey, setCopiedKey] = useState(null);
-
   if (!details) {
     return (
       <div className="text-xs text-slate-400 py-6 text-center bg-white rounded-3xl border border-slate-100 shadow-sm">
@@ -16,149 +14,11 @@ export default function ElementDetails({ details, onSelectChild }) {
     );
   }
 
-  const copyToClipboard = (text, key) => {
-    if (!text) return;
-    navigator.clipboard.writeText(text).then(() => {
-      setCopiedKey(key);
-      setTimeout(() => setCopiedKey(null), 1800);
-    });
-  };
-
-  const { dimensions, boxModel, attributes, textContent, selector, xpath, tagName, id, classList } = details;
-  const idString = id ? `#${id}` : '';
+  const { dimensions, boxModel, attributes, textContent } = details;
 
   return (
     <div className="space-y-3.5">
-      {/* 1. Primary Component Card (Styled like the "Class meeting" card in the design) */}
-      <div className="p-4 rounded-3xl bg-white border border-slate-100/90 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] space-y-3">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3 overflow-hidden">
-            {/* Soft Squircle Icon Badge */}
-            <div className="w-11 h-11 rounded-2xl bg-gradient-to-b from-blue-50 to-blue-100/60 text-[#0066ff] border border-blue-100/80 flex items-center justify-center shrink-0 shadow-xs">
-              {details.componentName ? (
-                <Sparkles className="w-5 h-5" />
-              ) : (
-                <Layers className="w-5 h-5" />
-              )}
-            </div>
-
-            {/* Element & Framework Info */}
-            <div className="overflow-hidden">
-              <h3 className="font-bold text-slate-900 text-sm truncate tracking-tight flex items-center gap-1.5">
-                {details.componentName ? (
-                  <span>&lt;{details.componentName} /&gt;</span>
-                ) : (
-                  <span>&lt;{tagName}{idString}&gt;</span>
-                )}
-              </h3>
-              <p className="text-[11px] text-slate-400 font-medium truncate mt-0.5">
-                {details.framework || 'Vanilla HTML'} &bull; {dimensions?.width} &times; {dimensions?.height} px &bull; {details.childElementCount || 0} children
-              </p>
-            </div>
-          </div>
-
-          {/* Copy Selector Action */}
-          <button
-            type="button"
-            onClick={() => copyToClipboard(selector, 'top-selector')}
-            className="w-8 h-8 rounded-full bg-slate-100/80 hover:bg-slate-200 text-slate-500 hover:text-slate-800 transition-all flex items-center justify-center shrink-0"
-            title="Copy Selector"
-          >
-            {copiedKey === 'top-selector' ? (
-              <Check className="w-4 h-4 text-emerald-500" />
-            ) : (
-              <Copy className="w-4 h-4" />
-            )}
-          </button>
-        </div>
-
-        {/* Vibrant Blue Accent Progress Line (matching design reference) */}
-        <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-          <div className="h-full bg-[#0066ff] rounded-full w-4/5 transition-all duration-500" />
-        </div>
-      </div>
-
-      {/* 2. Quick Selector & XPath Card */}
-      <div className="p-3.5 rounded-2xl bg-white border border-slate-100/90 shadow-sm space-y-2.5">
-        {/* CSS Selector Row */}
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-1.5 text-xs text-slate-400 shrink-0">
-            <Tag className="w-3.5 h-3.5 text-[#0066ff]" />
-            <span className="font-semibold text-slate-700">Selector:</span>
-          </div>
-          <div className="flex items-center gap-1.5 overflow-hidden">
-            <code className="text-[11px] font-mono text-[#0066ff] truncate max-w-[200px]" title={selector}>
-              {selector}
-            </code>
-            <button
-              type="button"
-              onClick={() => copyToClipboard(selector, 'selector')}
-              className="p-1 rounded-lg text-slate-400 hover:text-slate-800 hover:bg-slate-100 transition-colors shrink-0"
-              title="Copy CSS Selector"
-            >
-              {copiedKey === 'selector' ? (
-                <Check className="w-3.5 h-3.5 text-emerald-500" />
-              ) : (
-                <Copy className="w-3.5 h-3.5" />
-              )}
-            </button>
-          </div>
-        </div>
-
-        {/* XPath Row */}
-        <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-100">
-          <div className="flex items-center gap-1.5 text-xs text-slate-400 shrink-0">
-            <Navigation className="w-3.5 h-3.5 text-amber-500" />
-            <span className="font-semibold text-slate-700">XPath:</span>
-          </div>
-          <div className="flex items-center gap-1.5 overflow-hidden">
-            <code className="text-[11px] font-mono truncate max-w-[200px] text-amber-600" title={xpath}>
-              {xpath}
-            </code>
-            <button
-              type="button"
-              onClick={() => copyToClipboard(xpath, 'xpath')}
-              className="p-1 rounded-lg text-slate-400 hover:text-slate-800 hover:bg-slate-100 transition-colors shrink-0"
-              title="Copy XPath"
-            >
-              {copiedKey === 'xpath' ? (
-                <Check className="w-3.5 h-3.5 text-emerald-500" />
-              ) : (
-                <Copy className="w-3.5 h-3.5" />
-              )}
-            </button>
-          </div>
-        </div>
-
-        {/* Source File Location if detected */}
-        {details.sourceFile && (
-          <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-100">
-            <div className="flex items-center gap-1.5 text-xs text-slate-400 shrink-0">
-              <FileCode className="w-3.5 h-3.5 text-emerald-500" />
-              <span className="font-semibold text-slate-700">Source:</span>
-            </div>
-            <div className="flex items-center gap-1.5 overflow-hidden">
-              <code className="text-[11px] font-mono truncate max-w-[200px] text-emerald-600" title={`${details.sourceFile}:${details.lineNumber || 1}`}>
-                {details.sourceFile.split('/').slice(-2).join('/')}:{details.lineNumber || 1}
-              </code>
-              <button
-                type="button"
-                onClick={() => copyToClipboard(`${details.sourceFile}:${details.lineNumber || 1}:${details.columnNumber || 1}`, 'source-loc')}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-800 hover:bg-slate-100 transition-colors shrink-0"
-                title="Copy Source Path (file:line:col)"
-              >
-                {copiedKey === 'source-loc' ? (
-                  <Check className="w-3.5 h-3.5 text-emerald-500" />
-                ) : (
-                  <Copy className="w-3.5 h-3.5" />
-                )}
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* 3. Visual Box Model Card */}
+      {/* 1. Visual Box Model Card */}
       <div className="p-3.5 rounded-2xl bg-white border border-slate-100/90 shadow-sm space-y-2.5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-800">

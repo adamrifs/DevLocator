@@ -4,12 +4,12 @@ import Button from '../../components/ui/Button.jsx';
 import SectionTitle from '../../components/ui/SectionTitle.jsx';
 import IDESettings from '../../components/settings/IDESettings.jsx';
 import GeneralSettings from '../../components/settings/GeneralSettings.jsx';
-import { getSettings, saveSettings } from '../../utils/storage.js';
+import { getSettings, saveSettings, DEFAULT_SETTINGS } from '../../utils/storage.js';
 import { MESSAGE_TYPES } from '../../utils/messages.js';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('inspector'); // 'inspector' | 'settings'
-  const [settings, setSettings] = useState(null);
+  const [settings, setSettings] = useState(DEFAULT_SETTINGS);
   const [isInspecting, setIsInspecting] = useState(false);
   const [pageSupported, setPageSupported] = useState(true);
   const [statusMessage, setStatusMessage] = useState('Ready to inspect');

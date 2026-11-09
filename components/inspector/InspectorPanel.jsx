@@ -17,10 +17,52 @@ import {
   Copy,
   Check,
   Plus,
+  Navigation,
 } from 'lucide-react';
 import ElementDetails from './ElementDetails.jsx';
 import ComponentTree from './ComponentTree.jsx';
 import { MESSAGE_TYPES } from '../../utils/messages.js';
+
+/**
+ * Renders the brand logo SVG for the detected frontend framework.
+ */
+function renderFrameworkLogo(framework) {
+  const fw = (framework || '').toLowerCase();
+  if (fw.includes('react')) {
+    return (
+      <svg
+        viewBox="-11.5 -10.23174 23 20.46348"
+        className="w-6 h-6 text-[#00a8ff]"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.15"
+      >
+        <circle cx="0" cy="0" r="2.05" fill="#00a8ff" stroke="none" />
+        <ellipse rx="11" ry="4.2" />
+        <ellipse rx="11" ry="4.2" transform="rotate(60)" />
+        <ellipse rx="11" ry="4.2" transform="rotate(120)" />
+      </svg>
+    );
+  }
+  if (fw.includes('vue')) {
+    return (
+      <svg viewBox="0 0 24 24" className="w-6 h-6">
+        <path d="M12 2L2 19.3h4.6L12 9.7l5.4 9.6H22L12 2z" fill="#42b883" />
+        <path d="M12 9.7L7.8 17h8.4L12 9.7z" fill="#35495e" />
+      </svg>
+    );
+  }
+  if (fw.includes('angular')) {
+    return (
+      <svg viewBox="0 0 250 250" className="w-6 h-6">
+        <polygon points="125,30 125,30 125,30 31.9,63.2 46.1,186.3 125,230 125,230 125,230 203.9,186.3 218.1,63.2" fill="#dd0031" />
+        <polygon points="125,30 125,52.2 125,52.1 125,153.4 125,153.4 125,230 125,230 203.9,186.3 218.1,63.2" fill="#c3002f" />
+        <path d="M125,52.1L66.8,182.6H88.5L100.9,152.1H149.1L161.5,182.6H183.2L125,52.1ZM141.6,134.1H108.4L125,93.8L141.6,134.1Z" fill="#ffffff" />
+      </svg>
+    );
+  }
+  return <Code className="w-5 h-5 text-[#0066ff]" />;
+}
 
 const TABS = [
   { id: 'overview', label: 'Overview', icon: Info },
@@ -169,25 +211,127 @@ export default function InspectorPanel({
         {/* 1. OVERVIEW TAB */}
         {activeTab === 'overview' && (
           <div className="space-y-3.5">
-            {/* Hero Drop Card (exact match of top container in the user design image) */}
-            <div className="bg-white/80 border-2 border-dashed border-slate-200 rounded-3xl p-5 text-center shadow-xs relative overflow-hidden">
-              <h4 className="font-bold text-slate-900 text-sm tracking-tight">
-                {details.componentName ? `<${details.componentName} />` : `<${tagName}> Component`}
-              </h4>
+            {/* Hero Framework, Selector & Source Card (matches user design reference) */}
+            <div
+              className="rounded-3xl p-4 border border-slate-100 shadow-[0_4px_24px_-4px_rgba(0,0,0,0.06)] relative overflow-hidden space-y-3"
+              style={{
+                background:
+                  'radial-gradient(ellipse at 92% 10%, rgba(219, 234, 254, 0.55) 0%, rgba(240, 246, 255, 0.25) 45%, rgba(255, 255, 255, 1) 75%), #ffffff',
+              }}
+            >
+              {/* Header: Framework Logo + Framework Name + Component Pill */}
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  {/* Neumorphic / Embossed Squircle Icon Container */}
+                  <div className="w-11 h-11 rounded-2xl bg-gradient-to-b from-white to-[#edf5ff] border border-blue-100/80 flex items-center justify-center shrink-0 shadow-[0_2px_8px_rgba(0,102,255,0.08)]">
+                    {renderFrameworkLogo(details.framework)}
+                  </div>
 
-              {/* Radial Glowing Orb in center */}
-              <div
-                className="w-16 h-16 rounded-full mx-auto my-3 flex items-center justify-center relative shadow-[0_10px_25px_-5px_rgba(0,102,255,0.28)] border-2 border-white"
-                style={{
-                  background: 'radial-gradient(circle at 50% 30%, #ffffff 0%, #e0edff 50%, #cbe1ff 100%)',
-                }}
-              >
-                <Sparkles className="w-7 h-7 text-[#0066ff]" />
+                  <div>
+                    <span className="text-[11px] font-semibold text-slate-400 block leading-tight">
+                      Framework
+                    </span>
+                    <span className="text-base font-bold text-slate-900 block leading-tight mt-0.5">
+                      {details.framework || 'Vanilla HTML'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Component Name Badge */}
+                <div className="px-3.5 py-1 rounded-full bg-[#edf4ff] border border-blue-200/70 shadow-xs flex items-center">
+                  <span className="text-xs font-mono font-bold text-[#0066ff]">
+                    {details.componentName ? `<${details.componentName} />` : `<${tagName} />`}
+                  </span>
+                </div>
               </div>
 
-              <p className="text-xs text-slate-400 font-medium px-2 leading-relaxed">
-                {details.framework || 'Vanilla HTML'} &bull; {details.dimensions?.width} &times; {details.dimensions?.height} px
-              </p>
+              {/* Rows List */}
+              <div className="space-y-2.5 pt-1">
+                {/* 1. Selector Row */}
+                <div className="flex items-center gap-2 pb-2.5 border-b border-slate-100/90">
+                  <Crosshair className="w-4 h-4 text-slate-500 shrink-0" />
+                  <span className="w-14 text-xs font-bold text-slate-800 shrink-0">Selector</span>
+                  <div className="flex-1 min-w-0 bg-slate-50/90 border border-slate-200/60 rounded-full px-3 py-1 flex items-center overflow-hidden">
+                    <span className="text-xs font-mono text-[#0066ff] truncate" title={selector}>
+                      {selector}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => copyToClipboard(selector, 'hero-selector')}
+                    className="p-1 rounded-lg text-slate-400 hover:text-slate-800 hover:bg-slate-100 transition-colors shrink-0"
+                    title="Copy CSS Selector"
+                  >
+                    {copiedKey === 'hero-selector' ? (
+                      <Check className="w-3.5 h-3.5 text-emerald-500" />
+                    ) : (
+                      <Copy className="w-3.5 h-3.5" />
+                    )}
+                  </button>
+                </div>
+
+                {/* 2. XPath Row */}
+                <div className="flex items-center gap-2 pb-2.5 border-b border-slate-100/90">
+                  <Navigation className="w-4 h-4 text-amber-500 shrink-0" />
+                  <span className="w-14 text-xs font-bold text-slate-800 shrink-0">XPath</span>
+                  <div className="flex-1 min-w-0 bg-slate-50/90 border border-slate-200/60 rounded-full px-3 py-1 flex items-center overflow-hidden">
+                    <span className="text-xs font-mono text-amber-600 truncate" title={details.xpath}>
+                      {details.xpath}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => copyToClipboard(details.xpath, 'hero-xpath')}
+                    className="p-1 rounded-lg text-slate-400 hover:text-slate-800 hover:bg-slate-100 transition-colors shrink-0"
+                    title="Copy XPath"
+                  >
+                    {copiedKey === 'hero-xpath' ? (
+                      <Check className="w-3.5 h-3.5 text-emerald-500" />
+                    ) : (
+                      <Copy className="w-3.5 h-3.5" />
+                    )}
+                  </button>
+                </div>
+
+                {/* 3. Source Row */}
+                <div className="flex items-center gap-2">
+                  <FileCode className="w-4 h-4 text-slate-600 shrink-0" />
+                  <span className="w-14 text-xs font-bold text-slate-800 shrink-0">Source</span>
+                  <div className="flex-1 min-w-0 bg-slate-50/90 border border-slate-200/60 rounded-full px-3 py-1 flex items-center overflow-hidden">
+                    <span
+                      className={`text-xs font-mono truncate ${details.sourceFile ? 'text-emerald-700' : 'text-slate-400 italic'}`}
+                      title={
+                        details.sourceFile
+                          ? `${details.sourceFile}${details.lineNumber ? `:${details.lineNumber}${details.columnNumber ? `:${details.columnNumber}` : ''}` : ''}`
+                          : 'No source location detected'
+                      }
+                    >
+                      {details.sourceFile
+                        ? `${details.sourceFile.split('/').slice(-2).join('/')}${details.lineNumber ? `:${details.lineNumber}` : ''}`
+                        : 'Not detected'}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      copyToClipboard(
+                        details.sourceFile
+                          ? `${details.sourceFile}${details.lineNumber ? `:${details.lineNumber}${details.columnNumber ? `:${details.columnNumber}` : ''}` : ''}`
+                          : selector,
+                        'hero-source'
+                      )
+                    }
+                    className="p-1 rounded-lg text-slate-400 hover:text-slate-800 hover:bg-slate-100 transition-colors shrink-0"
+                    title="Copy Source File Location"
+                  >
+                    {copiedKey === 'hero-source' ? (
+                      <Check className="w-3.5 h-3.5 text-emerald-500" />
+                    ) : (
+                      <Copy className="w-3.5 h-3.5" />
+                    )}
+                  </button>
+                </div>
+              </div>
             </div>
 
             {/* Element Details & Children */}

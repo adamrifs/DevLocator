@@ -1,12 +1,35 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" style="width: 380px; height: 560px; background-color: #0f172a;">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>DevLocator</title>
+    <style>
+      html, body {
+        width: 380px !important;
+        min-width: 380px !important;
+        max-width: 380px !important;
+        height: 560px !important;
+        min-height: 560px !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background-color: #0f172a !important;
+        color: #f8fafc !important;
+        overflow-x: hidden !important;
+        box-sizing: border-box !important;
+      }
+      #root {
+        width: 380px !important;
+        height: 560px !important;
+        min-height: 560px !important;
+        display: flex;
+        flex-direction: column;
+        background-color: #0f172a;
+      }
+    </style>
   </head>
-  <body class="bg-slate-900 text-slate-100 antialiased">
-    <div id="root"></div>
+  <body class="bg-slate-900 text-slate-100 antialiased" style="width: 380px; height: 560px; background-color: #0f172a;">
+    <div id="root" style="width: 380px; height: 560px;"></div>
     <script type="module" src="./main.jsx"></script>
   </body>
 </html>
