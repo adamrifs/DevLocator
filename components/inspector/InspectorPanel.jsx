@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Crosshair,
   X,
@@ -22,6 +22,7 @@ import {
 import ElementDetails from './ElementDetails.jsx';
 import ComponentTree from './ComponentTree.jsx';
 import { MESSAGE_TYPES } from '../../utils/messages.js';
+import { formatSourceLocation } from '../../modules/source-locator/source-metadata.js';
 
 /**
  * Renders the brand logo SVG for the detected frontend framework.
@@ -78,6 +79,7 @@ const TABS = [
  */
 export default function InspectorPanel({
   details,
+  openInIDE = false,
   onClose,
   onReinspect,
   onSelectAncestor,
@@ -89,6 +91,54 @@ export default function InspectorPanel({
   const [copiedKey, setCopiedKey] = useState(null);
   const [styleFilter, setStyleFilter] = useState('');
   const [openStatus, setOpenStatus] = useState(null); // { type: 'loading'|'success'|'error', text: string }
+  const autoLaunchStarted = useRef(false);
+
+  const openSource = useCallback(async (copyOnFailure = false) => {
+    if (!details?.sourceFile) return;
+
+    const file = details.sourceFile;
+    const line = details.lineNumber || 1;
+    const column = details.columnNumber || 1;
+    const failureMessage = 'Could not launch IDE directly.';
+    setOpenStatus({ type: 'loading', text: `Opening in ${ide}...` });
+
+    try {
+      const response = await chrome.runtime.sendMessage({
+        type: MESSAGE_TYPES.OPEN_SOURCE_IN_IDE,
+        payload: { file, line, column, ide },
+      });
+      if (!response?.success) {
+        throw new Error(response?.message || failureMessage);
+      }
+
+      setOpenStatus({ type: 'success', text: response.message || `Opened in ${ide}!` });
+    } catch (error) {
+      let text = error.message || failureMessage;
+      if (copyOnFailure) {
+        try {
+          await navigator.clipboard.writeText(`${file}:${line}:${column}`);
+          text += ' (Location copied)';
+        } catch {
+          // The source location remains available in the panel.
+        }
+      }
+      setOpenStatus({ type: 'error', text });
+    }
+  }, [details, ide]);
+
+  useEffect(() => {
+    if (openInIDE && details?.sourceExact && !autoLaunchStarted.current) {
+      autoLaunchStarted.current = true;
+      openSource();
+    }
+  }, [openInIDE, details?.sourceExact, openSource]);
+
+  useEffect(() => {
+    if (!openStatus || openStatus.type === 'loading') return;
+
+    const timeoutId = setTimeout(() => setOpenStatus(null), 4000);
+    return () => clearTimeout(timeoutId);
+  }, [openStatus]);
 
   if (!details) return null;
 
@@ -139,7 +189,7 @@ export default function InspectorPanel({
       className={`flex flex-col font-sans select-none bg-[#f4f5f9] border border-white/80 shadow-[0_24px_60px_-12px_rgba(0,0,0,0.14),0_0_0_1px_rgba(0,0,0,0.04)] ${
         isEmbedded
           ? 'w-full h-full rounded-2xl'
-          : 'fixed bottom-5 right-5 z-[2147483647] w-[390px] max-h-[610px] rounded-[32px] overflow-hidden'
+          : 'fixed bottom-5 right-5 z-[2147483647] w-[460px] max-h-[640px] rounded-[32px] overflow-hidden'
       }`}
     >
       {/* Top Header */}
@@ -148,10 +198,10 @@ export default function InspectorPanel({
           {/* Element Tag Pill Badge */}
           <div className="px-3 py-1 rounded-full bg-white border border-slate-200/80 shadow-xs flex items-center gap-1.5 text-xs font-mono font-bold text-[#0066ff] shrink-0">
             <span className="w-2 h-2 rounded-full bg-[#0066ff] shadow-[0_0_6px_rgba(0,102,255,0.4)]" />
-            <span className="truncate max-w-[120px]">&lt;{tagName}{idString}&gt;</span>
+            <span className="truncate max-w-[150px]">&lt;{tagName}{idString}&gt;</span>
           </div>
           {classString && (
-            <span className="text-[11px] font-mono text-slate-400 truncate max-w-[100px]" title={classString}>
+            <span className="text-[11px] font-mono text-slate-400 truncate max-w-[140px]" title={classString}>
               {classString}
             </span>
           )}
@@ -207,11 +257,135 @@ export default function InspectorPanel({
       </div>
 
       {/* Scrollable Content Body */}
-      <div className="flex-1 overflow-y-auto px-4 py-2 space-y-3.5 max-h-[470px]">
+      <div className="flex-1 overflow-y-auto px-4 py-2 space-y-3.5 max-h-[500px]">
+        {(activeTab === 'overview' || activeTab === 'source') && (
+          <div className="space-y-3.5">
+            {details.sourceFile ? (
+              <div className="space-y-3.5">
+                <section className="p-3.5 rounded-2xl bg-white border border-slate-200/70 shadow-sm space-y-2.5">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-blue-50 text-[#0066ff] flex items-center justify-center shrink-0">
+                      <FileCode className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-slate-900 text-xs">Source Code Location</h3>
+                      {!details.sourceExact && (
+                        <p className="text-[11px] text-amber-700">Approximate location</p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* File Path Row */}
+                  <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200/70 flex items-center justify-between gap-2 text-left">
+                    <code className="text-xs font-mono text-emerald-700 break-all font-semibold" title={details.sourceFile}>
+                      {details.sourceFile}
+                    </code>
+                    <button
+                      type="button"
+                      onClick={() => copyToClipboard(details.sourceFile, 'source-file')}
+                      className="w-8 h-8 rounded-full bg-white hover:bg-slate-100 border border-slate-200 text-slate-600 hover:text-slate-900 transition-all flex items-center justify-center shrink-0 shadow-xs"
+                      title="Copy File Path"
+                    >
+                      {copiedKey === 'source-file' ? (
+                        <Check className="w-3.5 h-3.5 text-emerald-500" />
+                      ) : (
+                        <Copy className="w-3.5 h-3.5" />
+                      )}
+                    </button>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-slate-500">
+                    <span>Line <strong className="font-mono text-slate-800">{details.lineNumber ?? 'Unknown'}</strong></span>
+                    <span>Column <strong className="font-mono text-slate-800">{details.columnNumber ?? 'Unknown'}</strong></span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => copyToClipboard(
+                        formatSourceLocation(details.sourceFile, details.lineNumber, details.columnNumber),
+                        'path-loc'
+                      )}
+                      className="flex-1 py-2 px-2 rounded-lg bg-white hover:bg-slate-50 border border-slate-200 text-slate-800 font-semibold text-xs transition-all shadow-xs active:scale-95 text-center flex items-center justify-center gap-1.5"
+                    >
+                      {copiedKey === 'path-loc' ? (
+                        <>
+                          <Check className="w-3.5 h-3.5 text-emerald-500" />
+                          <span>Copied!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3.5 h-3.5 text-slate-400" />
+                          <span>Copy Location</span>
+                        </>
+                      )}
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={openStatus?.type === 'loading'}
+                      onClick={() => openSource(true)}
+                      className="flex-1 py-2 px-2 rounded-lg bg-[#0066ff] hover:bg-[#0052cc] active:scale-95 text-white font-semibold text-xs transition-all shadow-[0_6px_20px_rgba(0,102,255,0.35)] flex items-center justify-center gap-2 text-center"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                      <span>
+                        {openStatus?.type === 'loading'
+                          ? 'Opening...'
+                          : `Open in ${ide.charAt(0).toUpperCase() + ide.slice(1)}`}
+                      </span>
+                    </button>
+                  </div>
+                </section>
+                {/* IDE launch status */}
+                {openStatus && (
+                  <div role="status" className={`p-2.5 rounded-2xl text-xs font-medium text-center shadow-xs ${
+                    openStatus.type === 'success'
+                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                      : openStatus.type === 'loading'
+                      ? 'bg-blue-50 text-[#0066ff] border border-blue-200'
+                      : 'bg-rose-50 text-rose-700 border border-rose-200'
+                  }`}>
+                    {openStatus.text}
+                  </div>
+                )}
+              </div>
+            ) : activeTab === 'overview' ? (
+              <section className="flex items-center gap-2 rounded-2xl bg-white border border-slate-200/70 px-3.5 py-3 text-xs text-slate-600">
+                <FileCode className="w-4 h-4 shrink-0 text-slate-400" />
+                <span className="flex-1">Source location unavailable</span>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('source')}
+                  className="font-semibold text-[#0066ff] hover:underline"
+                >
+                  Setup help
+                </button>
+              </section>
+            ) : (
+              <div className="p-5 rounded-3xl bg-white border border-slate-100 shadow-sm text-center space-y-3">
+                <FileCode className="w-10 h-10 text-amber-500 mx-auto opacity-70" />
+                <h4 className="text-xs font-bold text-slate-800">
+                  Source Metadata Not Available
+                </h4>
+                <p className="text-xs text-slate-400 leading-relaxed max-w-xs mx-auto">
+                  This element does not have DevLocator compilation metadata or React Fiber <code className="text-amber-600 font-mono">_debugSource</code> attached.
+                </p>
+                <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200/80 text-left text-xs space-y-1.5">
+                  <span className="font-semibold text-slate-700 block">How to enable 1-click jump:</span>
+                  <p className="text-[11px] text-slate-500">Add the DevLocator plugin in your <code className="text-[#0066ff] font-mono">vite.config.js</code>:</p>
+                  <pre className="p-2 rounded-xl bg-white border border-slate-200 font-mono text-[10px] text-[#0066ff] overflow-x-auto">
+                    <code>{`import devlocator from './integrations/vite-plugin';\nexport default { plugins: [devlocator()] };`}</code>
+                  </pre>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* 1. OVERVIEW TAB */}
         {activeTab === 'overview' && (
           <div className="space-y-3.5">
-            {/* Hero Framework, Selector & Source Card (matches user design reference) */}
+            {/* Framework and element locators */}
             <div
               className="rounded-3xl p-4 border border-slate-100 shadow-[0_4px_24px_-4px_rgba(0,0,0,0.06)] relative overflow-hidden space-y-3"
               style={{
@@ -293,44 +467,6 @@ export default function InspectorPanel({
                   </button>
                 </div>
 
-                {/* 3. Source Row */}
-                <div className="flex items-center gap-2">
-                  <FileCode className="w-4 h-4 text-slate-600 shrink-0" />
-                  <span className="w-14 text-xs font-bold text-slate-800 shrink-0">Source</span>
-                  <div className="flex-1 min-w-0 bg-slate-50/90 border border-slate-200/60 rounded-full px-3 py-1 flex items-center overflow-hidden">
-                    <span
-                      className={`text-xs font-mono truncate ${details.sourceFile ? 'text-emerald-700' : 'text-slate-400 italic'}`}
-                      title={
-                        details.sourceFile
-                          ? `${details.sourceFile}${details.lineNumber ? `:${details.lineNumber}${details.columnNumber ? `:${details.columnNumber}` : ''}` : ''}`
-                          : 'No source location detected'
-                      }
-                    >
-                      {details.sourceFile
-                        ? `${details.sourceFile.split('/').slice(-2).join('/')}${details.lineNumber ? `:${details.lineNumber}` : ''}`
-                        : 'Not detected'}
-                    </span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      copyToClipboard(
-                        details.sourceFile
-                          ? `${details.sourceFile}${details.lineNumber ? `:${details.lineNumber}${details.columnNumber ? `:${details.columnNumber}` : ''}` : ''}`
-                          : selector,
-                        'hero-source'
-                      )
-                    }
-                    className="p-1 rounded-lg text-slate-400 hover:text-slate-800 hover:bg-slate-100 transition-colors shrink-0"
-                    title="Copy Source File Location"
-                  >
-                    {copiedKey === 'hero-source' ? (
-                      <Check className="w-3.5 h-3.5 text-emerald-500" />
-                    ) : (
-                      <Copy className="w-3.5 h-3.5" />
-                    )}
-                  </button>
-                </div>
               </div>
             </div>
 
@@ -498,166 +634,7 @@ export default function InspectorPanel({
           </div>
         )}
 
-        {/* 4. SOURCE TAB */}
-        {activeTab === 'source' && (
-          <div className="space-y-3.5">
-            {details.sourceFile ? (
-              <div className="space-y-3.5">
-                {/* Hero Source Card with Radial Glowing Orb */}
-                <div className="p-5 rounded-3xl bg-white border border-slate-100/90 shadow-sm text-center relative overflow-hidden space-y-3">
-                  {/* Radial Orb */}
-                  <div
-                    className="w-16 h-16 rounded-full mx-auto flex items-center justify-center relative shadow-[0_10px_25px_-5px_rgba(0,102,255,0.28)] border-2 border-white"
-                    style={{
-                      background: 'radial-gradient(circle at 50% 30%, #ffffff 0%, #e0edff 50%, #cbe1ff 100%)',
-                    }}
-                  >
-                    <FileCode className="w-7 h-7 text-[#0066ff]" />
-                  </div>
 
-                  <div>
-                    <h3 className="font-bold text-slate-900 text-sm">Source Code Location</h3>
-                    <p className="text-xs text-slate-400 font-medium mt-0.5">
-                      {details.sourceVerified ? 'Verified compilation metadata' : 'Approximate debug source'}
-                    </p>
-                  </div>
-
-                  {/* File Path Row */}
-                  <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200/70 flex items-center justify-between gap-2 text-left">
-                    <code className="text-xs font-mono text-emerald-700 break-all font-semibold" title={details.sourceFile}>
-                      {details.sourceFile}
-                    </code>
-                    <button
-                      type="button"
-                      onClick={() => copyToClipboard(details.sourceFile, 'source-file')}
-                      className="w-8 h-8 rounded-full bg-white hover:bg-slate-100 border border-slate-200 text-slate-600 hover:text-slate-900 transition-all flex items-center justify-center shrink-0 shadow-xs"
-                      title="Copy File Path"
-                    >
-                      {copiedKey === 'source-file' ? (
-                        <Check className="w-3.5 h-3.5 text-emerald-500" />
-                      ) : (
-                        <Copy className="w-3.5 h-3.5" />
-                      )}
-                    </button>
-                  </div>
-
-                  {/* Line Number & Column Cards */}
-                  <div className="grid grid-cols-2 gap-2.5">
-                    <div className="p-2.5 rounded-2xl bg-slate-50 border border-slate-200/70">
-                      <span className="text-[10px] block uppercase font-bold text-slate-400">Line Number</span>
-                      <span className="text-sm font-mono font-bold text-[#0066ff]">
-                        {details.lineNumber ? `Line ${details.lineNumber}` : 'Unknown'}
-                      </span>
-                    </div>
-                    <div className="p-2.5 rounded-2xl bg-slate-50 border border-slate-200/70">
-                      <span className="text-[10px] block uppercase font-bold text-slate-400">Column</span>
-                      <span className="text-sm font-mono font-bold text-[#0066ff]">
-                        {details.columnNumber ? `Col ${details.columnNumber}` : 'Unknown'}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Bottom Action Buttons (exact match of "Cancel" and "Upload" pill buttons from design image) */}
-                <div className="flex items-center gap-3 pt-1">
-                  {/* Secondary Pill Button */}
-                  <button
-                    type="button"
-                    onClick={() => copyToClipboard(`${details.sourceFile}:${details.lineNumber || 1}:${details.columnNumber || 1}`, 'path-loc')}
-                    className="flex-1 py-3 px-4 rounded-full bg-white hover:bg-slate-50 border border-slate-200 text-slate-800 font-semibold text-xs transition-all shadow-xs active:scale-95 text-center flex items-center justify-center gap-1.5"
-                  >
-                    {copiedKey === 'path-loc' ? (
-                      <>
-                        <Check className="w-3.5 h-3.5 text-emerald-500" />
-                        <span>Copied!</span>
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="w-3.5 h-3.5 text-slate-400" />
-                        <span>Copy Path</span>
-                      </>
-                    )}
-                  </button>
-
-                  {/* Primary Vibrant Blue Pill Button */}
-                  <button
-                    type="button"
-                    disabled={openStatus?.type === 'loading'}
-                    onClick={() => {
-                      setOpenStatus({ type: 'loading', text: `Opening in ${ide}...` });
-                      chrome.runtime?.sendMessage?.(
-                        {
-                          type: MESSAGE_TYPES.OPEN_SOURCE_IN_IDE,
-                          payload: {
-                            file: details.sourceFile,
-                            line: details.lineNumber || 1,
-                            column: details.columnNumber || 1,
-                            ide,
-                          },
-                        },
-                        (response) => {
-                          if (chrome.runtime.lastError || !response || !response.success) {
-                            const errMessage = response?.message || chrome.runtime.lastError?.message || 'Could not launch IDE directly.';
-                            const loc = `${details.sourceFile}:${details.lineNumber || 1}:${details.columnNumber || 1}`;
-                            navigator.clipboard.writeText(loc);
-                            setOpenStatus({
-                              type: 'error',
-                              text: `${errMessage} (Location copied)`,
-                            });
-                          } else {
-                            setOpenStatus({
-                              type: 'success',
-                              text: response.message || `Opened in ${ide}!`,
-                            });
-                          }
-                          setTimeout(() => setOpenStatus(null), 4000);
-                        }
-                      );
-                    }}
-                    className="flex-1 py-3 px-4 rounded-full bg-[#0066ff] hover:bg-[#0052cc] active:scale-95 text-white font-semibold text-xs transition-all shadow-[0_6px_20px_rgba(0,102,255,0.35)] flex items-center justify-center gap-2 text-center"
-                  >
-                    <ExternalLink className="w-3.5 h-3.5" />
-                    <span>
-                      {openStatus?.type === 'loading'
-                        ? 'Opening...'
-                        : `Open in ${ide.charAt(0).toUpperCase() + ide.slice(1)}`}
-                    </span>
-                  </button>
-                </div>
-
-                {/* Status Toast Banner */}
-                {openStatus && (
-                  <div className={`p-2.5 rounded-2xl text-xs font-medium text-center shadow-xs ${
-                    openStatus.type === 'success'
-                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                      : openStatus.type === 'loading'
-                      ? 'bg-blue-50 text-[#0066ff] border border-blue-200'
-                      : 'bg-rose-50 text-rose-700 border border-rose-200'
-                  }`}>
-                    {openStatus.text}
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="p-5 rounded-3xl bg-white border border-slate-100 shadow-sm text-center space-y-3">
-                <FileCode className="w-10 h-10 text-amber-500 mx-auto opacity-70" />
-                <h4 className="text-xs font-bold text-slate-800">
-                  Source Metadata Not Available
-                </h4>
-                <p className="text-xs text-slate-400 leading-relaxed max-w-xs mx-auto">
-                  This element does not have DevLocator compilation metadata or React Fiber <code className="text-amber-600 font-mono">_debugSource</code> attached.
-                </p>
-                <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200/80 text-left text-xs space-y-1.5">
-                  <span className="font-semibold text-slate-700 block">How to enable 1-click jump:</span>
-                  <p className="text-[11px] text-slate-500">Add the DevLocator plugin in your <code className="text-[#0066ff] font-mono">vite.config.js</code>:</p>
-                  <pre className="p-2 rounded-xl bg-white border border-slate-200 font-mono text-[10px] text-[#0066ff] overflow-x-auto">
-                    <code>{`import devlocator from './integrations/vite-plugin';\nexport default { plugins: [devlocator()] };`}</code>
-                  </pre>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
       </div>
 
       {/* Floating Bottom Dock Bar (matching the bottom navigation bar with center + FAB in the design image) */}

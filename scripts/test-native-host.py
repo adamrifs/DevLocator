@@ -4,10 +4,13 @@ Validates DevLocator Native Messaging Host sanitization and security logic.
 """
 import sys
 import os
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from unittest.mock import Mock, patch
 
 # Import companion module
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../native-companion')))
-from devlocator_host import sanitize_and_validate, WHITELISTED_IDES, find_executable
+from devlocator_host import sanitize_and_validate, find_executable, launch_editor
 
 passed = 0
 failed = 0
@@ -71,6 +74,50 @@ def test_invalid_line_col():
     assert data['line'] == 1
     assert data['column'] == 1
 test("Normalizes non-positive line and column numbers to 1", test_invalid_line_col)
+
+def test_antigravity_cli_wrapper():
+    with TemporaryDirectory() as directory:
+        binary = Path(directory) / 'antigravity-ide'
+        wrapper = binary.parent / 'bin' / binary.name
+        wrapper.parent.mkdir()
+        for executable in (binary, wrapper):
+            executable.touch(mode=0o755)
+        with patch('devlocator_host.get_binary_from_desktop', return_value=str(binary)):
+            assert find_executable('antigravity') == str(wrapper)
+test("Prefers the Antigravity CLI wrapper paired with the desktop executable", test_antigravity_cli_wrapper)
+
+def test_launch_uses_selected_editor():
+    for ide, executable in {
+        'vscode': '/usr/bin/code',
+        'cursor': '/usr/bin/cursor',
+        'antigravity': '/usr/bin/antigravity-ide',
+    }.items():
+        file = str(Path(__file__).resolve())
+        payload = {'file': file, 'line': 42, 'column': 10, 'ide': ide}
+        process = Mock()
+        process.wait.return_value = 0
+        with (
+            patch('devlocator_host.find_executable', return_value=executable) as find,
+            patch('devlocator_host.subprocess.Popen', return_value=process) as launch,
+        ):
+            assert launch_editor(payload)[0]
+            find.assert_called_once_with(ide)
+            assert launch.call_args.args[0] == [executable, '--goto', f'{file}:42:10']
+
+test("Passes the source location to the selected editor's executable", test_launch_uses_selected_editor)
+
+def test_missing_editor_does_not_fall_back():
+    payload = {'file': __file__, 'line': 1, 'column': 1, 'ide': 'vscode'}
+    with (
+        patch('devlocator_host.find_executable', return_value=None),
+        patch('devlocator_host.subprocess.Popen') as launch,
+    ):
+        success, message = launch_editor(payload)
+        assert not success
+        assert 'VS Code could not be found' in message
+        launch.assert_not_called()
+
+test("Unavailable VS Code reports an error without launching a URL handler", test_missing_editor_does_not_fall_back)
 
 print(f"\n============================")
 print(f"Results: {passed} passed, {failed} failed")

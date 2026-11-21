@@ -195,7 +195,7 @@ export default defineContentScript({
     /**
      * Mounts the React InspectorPanel inside an isolated Shadow DOM container.
      */
-    function renderInspectorPanel(details, settings) {
+    function renderInspectorPanel(details, settings, openInIDE = false) {
       removeInspectorPanel();
 
       const host = document.createElement('div');
@@ -271,6 +271,7 @@ export default defineContentScript({
           null,
           React.createElement(InspectorPanel, {
             details,
+            openInIDE,
             ide: effectiveSettings?.ide || 'antigravity',
             theme: effectiveSettings?.theme || 'dark',
             onClose: handleClose,
@@ -307,14 +308,14 @@ export default defineContentScript({
 
       picker.start(
         // onSelect
-        (element, details) => {
+        (element, details, openInIDE) => {
           isShiftHeld = false;
           currentSelectedElement = element;
           lastSelectedDetails = details;
           console.log('[DevLocator] Element selected:', details);
 
           // Render inspector panel on webpage
-          renderInspectorPanel(details, effectiveSettings);
+          renderInspectorPanel(details, currentSettings || effectiveSettings, openInIDE);
 
           // Notify extension
           chrome.runtime.sendMessage({

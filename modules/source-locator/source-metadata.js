@@ -7,13 +7,13 @@
  * @param {Element} element
  * @returns {object|null}
  */
-export function readDevLocatorMetadata(element) {
+export function readDevLocatorMetadata(element, maxDepth = 10) {
   if (!element || !(element instanceof Element)) return null;
 
   let current = element;
   let depth = 0;
 
-  while (current && depth < 10) {
+  while (current && depth < maxDepth) {
     const file = current.getAttribute('data-devlocator-file');
     if (file) {
       const lineStr = current.getAttribute('data-devlocator-line');
@@ -22,15 +22,19 @@ export function readDevLocatorMetadata(element) {
 
       const line = lineStr ? parseInt(lineStr, 10) : null;
       const column = colStr ? parseInt(colStr, 10) : null;
+      // Metadata forwarded by a JSX component can describe its caller.
+      const exact = depth === 0 && line > 0
+        && (!comp || comp === element.localName);
 
       return {
         file,
-        line: isNaN(line) ? null : line,
-        column: isNaN(column) ? null : column,
+        line: line > 0 ? line : null,
+        column: column > 0 ? column : null,
         componentName: comp || null,
         strategy: 'vite-plugin',
         verified: true,
-        confidence: 'high',
+        confidence: exact ? 'high' : 'partial',
+        exact,
       };
     }
 
@@ -50,6 +54,16 @@ export function normalizeSourcePath(rawPath) {
   if (!rawPath || typeof rawPath !== 'string') return '';
 
   let cleaned = rawPath;
+  if (cleaned.startsWith('file://')) {
+    try {
+      const url = new URL(cleaned);
+      if (url.hostname && url.hostname !== 'localhost') return '';
+      cleaned = decodeURIComponent(url.pathname);
+    } catch {
+      return '';
+    }
+    return cleaned;
+  }
 
   // Remove webpack protocol prefixes
   cleaned = cleaned.replace(/^webpack:\/\/\/?/, '');

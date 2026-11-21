@@ -9,8 +9,8 @@ html, body {
   height: 560px;
   min-width: 380px;
   min-height: 560px;
-  background-color: #0f172a;
-  color: #f8fafc;
+  background-color: #f8fafd;
+  color: #0f172a;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   user-select: none;
   overflow-x: hidden;
@@ -23,5 +23,6 @@ html, body {
   min-height: 560px;
   display: flex;
   flex-direction: column;
+  background-color: #f8fafd;
 }
 

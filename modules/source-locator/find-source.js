@@ -11,6 +11,7 @@ import { getVueComponent } from '../framework-detector/vue-adapter.js';
  *   componentName: string|null,
  *   strategy: "vite-plugin" | "react-debug-source" | "vue-file" | "source-map" | "none",
  *   verified: boolean,
+ *   exact?: boolean,
  *   confidence: "high" | "partial" | "low"
  * }
  */
@@ -27,38 +28,51 @@ export function findSourceLocation(element, options = {}) {
   }
 
   // Strategy B: DevLocator Vite plugin metadata (data-devlocator-*)
-  const viteMeta = readDevLocatorMetadata(element);
-  if (viteMeta && viteMeta.file) {
-    return {
-      file: normalizeSourcePath(viteMeta.file),
-      line: viteMeta.line,
-      column: viteMeta.column,
-      componentName: viteMeta.componentName || null,
-      strategy: 'vite-plugin',
-      verified: true,
-      confidence: 'high',
-    };
-  }
+  const directMetadata = readDevLocatorMetadata(element, 1);
+  const directFile = normalizeSourcePath(directMetadata?.file);
+  const directSource = directFile && directMetadata.exact
+    ? { ...directMetadata, file: directFile }
+    : null;
+  if (directSource?.file.startsWith('/')) return directSource;
 
   // Strategy A.1: React development _debugSource
   const fiber = getReactFiber(element);
   if (fiber) {
     let current = fiber;
     while (current) {
-      const debugSource = current._debugSource || current._debugOwner?._debugSource;
-      if (debugSource && debugSource.fileName) {
+      const debugSource = current._debugSource;
+      const file = normalizeSourcePath(debugSource?.fileName);
+      if (file) {
+        const line = Number.isInteger(debugSource.lineNumber) && debugSource.lineNumber > 0 ? debugSource.lineNumber : null;
+        const column = Number.isInteger(debugSource.columnNumber) && debugSource.columnNumber > 0 ? debugSource.columnNumber : null;
+        const exact = current === fiber && fiber.stateNode === element && typeof fiber.type === 'string' && line !== null;
+        if (directSource) {
+          // Resolve a relative plugin path only when the selected DOM fiber identifies the same file.
+          return exact && file.startsWith('/') && file.endsWith(`/${directFile}`)
+            ? { ...directSource, file }
+            : directSource;
+        }
         return {
-          file: normalizeSourcePath(debugSource.fileName),
-          line: typeof debugSource.lineNumber === 'number' ? debugSource.lineNumber : null,
-          column: typeof debugSource.columnNumber === 'number' ? debugSource.columnNumber : null,
+          file,
+          line,
+          column,
           componentName: current.type?.displayName || current.type?.name || null,
           strategy: 'react-debug-source',
           verified: true,
-          confidence: 'high',
+          confidence: exact ? 'high' : 'partial',
+          exact,
         };
       }
       current = current.return;
     }
+  }
+
+  if (directSource) return directSource;
+
+  const inheritedMetadata = readDevLocatorMetadata(element);
+  const inheritedFile = normalizeSourcePath(inheritedMetadata?.file);
+  if (inheritedFile) {
+    return { ...inheritedMetadata, file: inheritedFile };
   }
 
   // Strategy A.2: Vue component __file

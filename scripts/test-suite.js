@@ -91,6 +91,7 @@ test('Detects source location via data-devlocator attributes (Vite Plugin)', () 
   assert.equal(res.componentName, 'Header');
   assert.equal(res.strategy, 'vite-plugin');
   assert.equal(res.verified, true);
+  assert.equal(res.exact, false);
 });
 
 test('Walks up ancestors to inherit source location when child has no attributes', () => {
@@ -114,6 +115,44 @@ test('Walks up ancestors to inherit source location when child has no attributes
   assert.equal(res.column, 3);
   assert.equal(res.componentName, 'Card');
   assert.equal(res.verified, true);
+  assert.equal(res.exact, false);
+});
+
+test('Prefers the selected React DOM node over an instrumented ancestor and its component owner', () => {
+  const parent = createMockElement({
+    attributes: {
+      'data-devlocator-file': '/project/src/Parent.tsx',
+      'data-devlocator-line': '15',
+    },
+  });
+  const child = createMockElement({ tagName: 'BUTTON', parentElement: parent });
+  child.__reactFiber$test = {
+    type: 'button',
+    stateNode: child,
+    _debugSource: { fileName: '/project/src/Child.tsx', lineNumber: 34, columnNumber: 9 },
+    _debugOwner: { _debugSource: { fileName: '/project/src/App.tsx', lineNumber: 80, columnNumber: 15 } },
+  };
+
+  const result = findSourceLocation(child);
+  assert.deepEqual([result.file, result.line, result.exact], ['/project/src/Child.tsx', 34, true]);
+});
+
+test('Resolves relative JSX metadata with a matching React DOM source path', () => {
+  const element = createMockElement({
+    tagName: 'BUTTON',
+    attributes: {
+      'data-devlocator-file': 'src/Button.tsx',
+      'data-devlocator-line': '42',
+      'data-devlocator-column': '5',
+    },
+  });
+  element.__reactFiber$test = {
+    type: 'button',
+    stateNode: element,
+    _debugSource: { fileName: '/project/src/Button.tsx', lineNumber: 44, columnNumber: 12 },
+  };
+  const result = findSourceLocation(element);
+  assert.deepEqual([result.file, result.line, result.column, result.exact], ['/project/src/Button.tsx', 42, 5, true]);
 });
 
 test('Returns null when no source attributes exist', () => {

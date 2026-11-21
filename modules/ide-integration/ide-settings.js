@@ -27,31 +27,6 @@ export async function setPreferredIDE(ide) {
 }
 
 /**
- * Generates an editor URL protocol string for an inspected file location.
- * @param {string} ide - 'antigravity' | 'vscode' | 'cursor'
- * @param {string} filePath - Path to file
- * @param {number|null} line - Line number
- * @param {number|null} column - Column number
- * @returns {string} URL protocol string
- */
-export function getEditorUrl(ide, filePath, line = 1, column = 1) {
-  const cleanPath = filePath.startsWith('/') ? filePath : `/${filePath}`;
-  const targetLine = line || 1;
-  const targetCol = column || 1;
-
-  switch (ide) {
-    case SUPPORTED_IDES.CURSOR:
-      return `cursor://file${cleanPath}:${targetLine}:${targetCol}`;
-    case SUPPORTED_IDES.VSCODE:
-      return `vscode://file${cleanPath}:${targetLine}:${targetCol}`;
-    case SUPPORTED_IDES.ANTIGRAVITY:
-    default:
-      // On Linux, Antigravity IDE registers x-scheme-handler/vscode and x-scheme-handler/antigravity-ide
-      return `vscode://file${cleanPath}:${targetLine}:${targetCol}`;
-  }
-}
-
-/**
  * Generates a CLI command string for manual opening in a terminal.
  * @param {string} ide
  * @param {string} filePath

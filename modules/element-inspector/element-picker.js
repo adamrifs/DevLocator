@@ -233,14 +233,11 @@ export class ElementPicker {
     event.stopImmediatePropagation();
 
     const selectedTarget = this.getElementAtPoint(event.clientX, event.clientY) || target;
-    const details = await extractElementDetails(selectedTarget);
-
-    if (this.onSelectCallback) {
-      this.onSelectCallback(selectedTarget, details);
-    }
-
-    // Stop inspection mode after element is selected
+    const openInIDE = event.shiftKey;
+    const onSelect = this.onSelectCallback;
     this.stop();
+    const details = await extractElementDetails(selectedTarget);
+    onSelect?.(selectedTarget, details, openInIDE);
   }
 
   /**

@@ -244,7 +244,13 @@ export function queryMainWorldFramework(element) {
     let resolved = false;
 
     // Mark the element temporarily so the main-world bridge can locate it accurately
-    element.setAttribute('data-devlocator-inspect-target', 'true');
+    element.setAttribute('data-devlocator-inspect-target', requestId);
+
+    function removeTargetMarker() {
+      if (element.getAttribute('data-devlocator-inspect-target') === requestId) {
+        element.removeAttribute('data-devlocator-inspect-target');
+      }
+    }
 
     const handleMessage = (event) => {
       if (
@@ -256,8 +262,8 @@ export function queryMainWorldFramework(element) {
         if (!resolved) {
           resolved = true;
           window.removeEventListener('message', handleMessage);
-          element.removeAttribute('data-devlocator-inspect-target');
-          resolve(event.data.frameworkInfo || null);
+          removeTargetMarker();
+          resolve(event.data);
         }
       }
     };
@@ -270,7 +276,7 @@ export function queryMainWorldFramework(element) {
         source: 'DEVLOCATOR_ISOLATED',
         action: 'INSPECT_ELEMENT',
         requestId,
-        selector: getElementSelector(element),
+        inShadowRoot: element.getRootNode() !== document,
       },
       '*'
     );
@@ -280,7 +286,7 @@ export function queryMainWorldFramework(element) {
       if (!resolved) {
         resolved = true;
         window.removeEventListener('message', handleMessage);
-        element.removeAttribute('data-devlocator-inspect-target');
+        removeTargetMarker();
         resolve(null);
       }
     }, 75);
@@ -316,18 +322,19 @@ export async function extractElementDetails(element) {
   const outerHTML = getFormattedHTML(element);
 
   // Query main-world bridge for Fiber/Vue/Angular JS objects, with local fallback
-  const bridgeInfo = await queryMainWorldFramework(element);
+  const bridgeResult = await queryMainWorldFramework(element);
+  const bridgeInfo = bridgeResult?.frameworkInfo;
   const frameworkInfo = (bridgeInfo && bridgeInfo.framework !== 'Vanilla HTML')
     ? bridgeInfo
     : detectFramework(element);
 
   // Source code location detection (Vite metadata, React _debugSource, Vue __file)
-  const sourceLoc = findSourceLocation(element);
-  const finalSourceFile = sourceLoc.file || frameworkInfo.sourceFile || null;
-  const finalLine = sourceLoc.line ?? frameworkInfo.lineNumber ?? null;
-  const finalColumn = sourceLoc.column ?? frameworkInfo.columnNumber ?? null;
-  const finalStrategy = sourceLoc.file ? sourceLoc.strategy : (frameworkInfo.sourceFile ? 'react-debug-source' : 'none');
-  const isSourceVerified = Boolean(finalSourceFile && (sourceLoc.verified || frameworkInfo.sourceFile));
+  const localSource = findSourceLocation(element);
+  const bridgeSource = bridgeResult?.sourceLocation;
+  // Prefer selected-element metadata from the page world and keep the location intact.
+  const sourceLoc = bridgeSource?.file && (bridgeSource.exact || !localSource.exact)
+    ? bridgeSource
+    : localSource;
 
   // Parent & Child elements for hierarchy navigation
   const parent = element.parentElement && !isDevLocatorElement(element.parentElement) && element.parentElement !== document.documentElement
@@ -376,11 +383,12 @@ export async function extractElementDetails(element) {
     framework: frameworkInfo.framework,
     componentName: frameworkInfo.componentName || sourceLoc.componentName,
     componentHierarchy: frameworkInfo.componentHierarchy,
-    sourceFile: finalSourceFile,
-    lineNumber: finalLine,
-    columnNumber: finalColumn,
-    sourceStrategy: finalStrategy,
-    sourceVerified: isSourceVerified,
+    sourceFile: sourceLoc.file,
+    lineNumber: sourceLoc.line,
+    columnNumber: sourceLoc.column,
+    sourceStrategy: sourceLoc.strategy,
+    sourceVerified: sourceLoc.verified,
+    sourceExact: sourceLoc.exact === true,
     confidence: frameworkInfo.confidence,
     frameworkDetails: frameworkInfo.details,
   };

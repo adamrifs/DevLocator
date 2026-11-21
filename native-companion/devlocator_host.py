@@ -12,7 +12,8 @@ import struct
 import shutil
 import subprocess
 
-WHITELISTED_IDES = {'antigravity', 'vscode', 'cursor'}
+EDITOR_NAMES = {'antigravity': 'Antigravity', 'vscode': 'VS Code', 'cursor': 'Cursor'}
+WHITELISTED_IDES = EDITOR_NAMES.keys()
 
 def send_message(message_dict):
     """Encodes and writes length-prefixed JSON message to stdout."""
@@ -99,15 +100,18 @@ def find_executable(ide_name):
             os.path.expanduser('~/.local/bin/antigravity-ide'),
             os.path.expanduser('~/.local/bin/antigravity'),
             os.path.expanduser('~/.gemini/bin/agy'),
-            # Antigravity is built on VS Code engine
-            'code',
         ]
 
     for candidate in candidates:
         if not candidate:
             continue
         if candidate.startswith('/'):
-            if os.path.exists(candidate):
+            if os.path.isfile(candidate) and os.access(candidate, os.X_OK):
+                if ide_name == 'antigravity':
+                    directory, name = os.path.split(os.path.realpath(candidate))
+                    wrapper = os.path.join(directory, 'bin', name)
+                    if os.path.isfile(wrapper) and os.access(wrapper, os.X_OK):
+                        return wrapper
                 return candidate
         else:
             found = shutil.which(candidate)
@@ -164,45 +168,36 @@ def launch_editor(clean_payload):
     line = clean_payload['line']
     column = clean_payload['column']
 
+    if not os.path.isfile(file_path):
+        return False, f"Source file does not exist at {file_path}"
+
+    editor_name = EDITOR_NAMES[ide]
     binary = find_executable(ide)
-    if binary:
-        # 1. Direct binary CLI execution
-        location_arg = f"{file_path}:{line}:{column}"
-        cmd = [binary, '--goto', location_arg]
+    if not binary:
+        return False, f"{editor_name} could not be found. Install it or make its command available to DevLocator."
 
-        try:
-            subprocess.Popen(
-                cmd,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-                start_new_session=True,
-            )
-            return True, f"Opened in {ide} at {os.path.basename(file_path)}:{line}:{column}"
-        except Exception:
-            pass
+    location_arg = f"{file_path}:{line}:{column}"
+    location_label = f"{os.path.basename(file_path)}:{line}:{column}"
+    env = os.environ.copy()
+    # Use the selected CLI's local instance even if Chrome was started from an IDE terminal.
+    env.pop('VSCODE_IPC_HOOK_CLI', None)
 
-    # 2. Try xdg-open with registered desktop URL schemes
-    xdg_bin = shutil.which('xdg-open')
-    if xdg_bin:
-        schemes = [ide]
-        if ide == 'antigravity':
-            # Antigravity IDE on Linux registers x-scheme-handler/antigravity-ide and x-scheme-handler/vscode
-            schemes = ['vscode', 'antigravity-ide', 'antigravity']
+    try:
+        process = subprocess.Popen(
+            [binary, '--goto', location_arg],
+            env=env,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            start_new_session=True,
+        )
+        if process.wait(timeout=2) == 0:
+            return True, f"Sent to {editor_name} at {location_label}"
+    except subprocess.TimeoutExpired:
+        return True, f"Launch started for {editor_name} at {location_label}"
+    except OSError as error:
+        return False, f"Could not start {editor_name}. {error.strerror or error}"
 
-        for scheme in schemes:
-            url = f"{scheme}://file{file_path}:{line}:{column}"
-            try:
-                subprocess.Popen(
-                    [xdg_bin, url],
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL,
-                    start_new_session=True,
-                )
-                return True, f"Opened in {ide} at {os.path.basename(file_path)}:{line}:{column}"
-            except Exception:
-                continue
-
-    return False, f"Could not find executable for '{ide}' in PATH or registered URL handler. Command copied: {ide} -g {file_path}:{line}:{column}"
+    return False, f"{editor_name} did not accept the request to open {location_label}."
 
 def main():
     while True:

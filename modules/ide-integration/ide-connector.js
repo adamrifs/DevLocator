@@ -1,4 +1,4 @@
-import { getEditorUrl, getEditorCliCommand, SUPPORTED_IDES } from './ide-settings.js';
+import { getEditorCliCommand, SUPPORTED_IDES } from './ide-settings.js';
 
 export const NATIVE_HOST_NAME = 'com.devlocator.companion';
 
@@ -62,66 +62,38 @@ export async function openSourceInIDE(payload) {
   }
 
   const { file, line, column, ide } = validation.data;
+  let nativeError;
 
   // Try Chrome Native Messaging if available
   if (typeof chrome !== 'undefined' && chrome.runtime?.sendNativeMessage) {
     try {
-      const nativeResult = await new Promise((resolve) => {
-        chrome.runtime.sendNativeMessage(
-          NATIVE_HOST_NAME,
-          { file, line, column, ide },
-          (response) => {
-            if (chrome.runtime.lastError) {
-              resolve({
-                success: false,
-                error: chrome.runtime.lastError.message,
-              });
-            } else {
-              resolve(response || { success: true });
-            }
-          }
-        );
-      });
+      let timeoutId;
+      const nativeResult = await Promise.race([
+        chrome.runtime.sendNativeMessage(NATIVE_HOST_NAME, { file, line, column, ide }),
+        new Promise((resolve) => {
+          timeoutId = setTimeout(() => resolve({ error: 'The IDE companion did not respond in time.' }), 10000);
+        }),
+      ]).finally(() => clearTimeout(timeoutId));
 
-      if (nativeResult.success) {
+      if (nativeResult?.success) {
         return {
           success: true,
           method: 'native',
           message: nativeResult.message || `Successfully launched in ${ide}`,
         };
       }
+      nativeError = nativeResult?.error || 'The IDE companion returned no result.';
     } catch (err) {
-      console.warn('[DevLocator] Native messaging failed, falling back to URL protocol:', err);
+      nativeError = err.message;
     }
   }
 
-  // Fallback 1: Browser URL protocol (vscode://, cursor://, antigravity://)
-  try {
-    const url = getEditorUrl(ide, file, line, column);
-    if (typeof window !== 'undefined') {
-      const link = document.createElement('a');
-      link.href = url;
-      link.style.display = 'none';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-
-      return {
-        success: true,
-        method: 'url-protocol',
-        message: `Dispatched launch to ${url}`,
-      };
-    }
-  } catch (err) {
-    console.warn('[DevLocator] URL protocol launch failed:', err);
-  }
-
-  // Fallback 2: Return CLI command for user clipboard
+  // Launching through a URL can open a different editor registered for that scheme.
   const cliCmd = getEditorCliCommand(ide, file, line, column);
   return {
     success: false,
     method: 'fallback-cli',
-    message: `Native host not connected. Run command: ${cliCmd}`,
+    message: nativeError || `Native host not connected. Run command: ${cliCmd}`,
     cliCommand: cliCmd,
   };
 }

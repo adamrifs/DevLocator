@@ -1,7 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { Crosshair, Settings, Code, Sparkles, CheckCircle2, AlertCircle, XCircle, Tag, Copy, Check } from 'lucide-react';
-import Button from '../../components/ui/Button.jsx';
-import SectionTitle from '../../components/ui/SectionTitle.jsx';
+import {
+  Crosshair,
+  Settings,
+  Code,
+  Sparkles,
+  CheckCircle2,
+  AlertCircle,
+  XCircle,
+  Copy,
+  Check,
+  Keyboard,
+  LogOut,
+} from 'lucide-react';
 import IDESettings from '../../components/settings/IDESettings.jsx';
 import GeneralSettings from '../../components/settings/GeneralSettings.jsx';
 import { getSettings, saveSettings, DEFAULT_SETTINGS } from '../../utils/storage.js';
@@ -172,143 +182,205 @@ export default function App() {
   };
 
   return (
-    <div className={`flex flex-col h-full select-none ${
-      isLight ? 'bg-slate-100 text-slate-900' : 'bg-slate-900 text-slate-100'
-    }`}>
+    <div
+      className="flex flex-col h-full select-none text-slate-900"
+      style={{
+        background:
+          'radial-gradient(ellipse at 92% 8%, rgba(219, 234, 254, 0.45) 0%, rgba(240, 246, 255, 0.2) 40%, rgba(248, 250, 253, 1) 75%), #f8fafd',
+      }}
+    >
       {/* Top Header */}
-      <header className={`flex items-center justify-between px-4 py-3 border-b backdrop-blur ${
-        isLight ? 'bg-white/90 border-slate-200' : 'bg-slate-950/70 border-slate-800'
-      }`}>
-        <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded bg-gradient-to-br from-sky-400 to-blue-600 flex items-center justify-center text-white shadow-sm shadow-sky-500/20">
-            <Crosshair className="w-4 h-4" />
+      <header className="px-4 pt-4 pb-2.5 flex items-center justify-between">
+        {/* Left Brand Identity */}
+        <div className="flex items-center gap-2.5">
+          <div className="w-10 h-10 rounded-2xl bg-gradient-to-b from-[#1d63ff] to-[#0055ff] shadow-[0_4px_14px_rgba(0,102,255,0.35)] flex items-center justify-center text-white shrink-0">
+            <Crosshair className="w-5 h-5 text-white" />
           </div>
-          <div>
-            <h1 className={`text-sm font-bold tracking-tight flex items-center gap-1.5 ${isLight ? 'text-slate-900' : 'text-white'}`}>
+          <div className="flex items-center gap-1.5">
+            <h1 className="text-base font-bold text-slate-900 tracking-tight">
               DevLocator
-              <span className={`text-[10px] font-normal px-1.5 py-0.2 rounded ${
-                isLight ? 'bg-slate-200 text-slate-600' : 'bg-slate-800 text-slate-400'
-              }`}>v0.1</span>
             </h1>
+            <span className="text-[10px] font-semibold text-[#0066ff] px-2 py-0.5 rounded-full bg-blue-50/90 border border-blue-200/60 shadow-xs">
+              v0.1
+            </span>
           </div>
         </div>
 
-        {/* Tab switch between Inspector & Settings */}
-        <div className={`flex items-center gap-1 p-0.5 rounded-lg border ${
-          isLight ? 'bg-slate-200/90 border-slate-300' : 'bg-slate-800/80 border-slate-700/60'
-        }`}>
+        {/* Right Navigation Controls */}
+        <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={() => setActiveTab('inspector')}
-            className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${
+            className={`px-4 py-1.5 rounded-full font-semibold text-xs transition-all ${
               activeTab === 'inspector'
-                ? 'bg-sky-500 text-white shadow-sm'
-                : isLight
-                ? 'text-slate-600 hover:text-slate-900'
-                : 'text-slate-400 hover:text-slate-200'
+                ? 'bg-gradient-to-r from-[#0066ff] to-[#0052cc] text-white shadow-[0_4px_12px_rgba(0,102,255,0.28)]'
+                : 'bg-white hover:bg-slate-50 text-slate-600 border border-slate-200/80 shadow-xs'
             }`}
           >
             Inspect
           </button>
           <button
             type="button"
-            onClick={() => setActiveTab('settings')}
-            className={`p-1 text-xs font-medium rounded-md transition-colors ${
+            onClick={() => setActiveTab(activeTab === 'settings' ? 'inspector' : 'settings')}
+            className={`w-8 h-8 rounded-xl border flex items-center justify-center transition-all shadow-xs ${
               activeTab === 'settings'
-                ? 'bg-sky-500 text-white shadow-sm'
-                : isLight
-                ? 'text-slate-600 hover:text-slate-900'
-                : 'text-slate-400 hover:text-slate-200'
+                ? 'bg-[#edf5ff] border-blue-200/80 text-[#0066ff]'
+                : 'bg-white hover:bg-slate-50 border-slate-200/80 text-slate-500 hover:text-slate-800'
             }`}
             title="Settings"
           >
-            <Settings className="w-3.5 h-3.5" />
+            <Settings className="w-4 h-4" />
           </button>
         </div>
       </header>
 
       {/* Main Content Body */}
-      <main className="p-4 flex-1 overflow-y-auto space-y-4">
+      <main className="px-4 py-2 flex-1 overflow-y-auto space-y-3.5">
         {activeTab === 'inspector' ? (
           <>
-            {/* Status Card */}
-            <div className={`p-3 rounded-lg border transition-colors ${
-              !pageSupported
-                ? isLight
-                  ? 'bg-amber-50 border-amber-300'
-                  : 'bg-amber-950/20 border-amber-800/50'
-                : isInspecting
-                ? isLight
-                  ? 'bg-sky-50 border-sky-300'
-                  : 'bg-sky-950/30 border-sky-800/50'
-                : isLight
-                ? 'bg-white border-slate-200 shadow-sm'
-                : 'bg-slate-800/40 border-slate-800'
-            }`}>
-              <div className="flex items-center gap-2">
-                {!pageSupported ? (
-                  <AlertCircle className="w-4 h-4 text-amber-500 shrink-0" />
-                ) : isInspecting ? (
-                  <CheckCircle2 className="w-4 h-4 text-sky-500 shrink-0 animate-pulse" />
-                ) : (
-                  <div className={`w-2 h-2 rounded-full shrink-0 ${isLight ? 'bg-slate-400' : 'bg-slate-500'}`} />
-                )}
-                <span className={`text-xs font-medium ${isLight ? 'text-slate-800' : 'text-slate-200'}`}>
-                  {statusMessage}
-                </span>
-              </div>
-              {!pageSupported && (
-                <p className={`text-[11px] mt-1 pl-6 ${isLight ? 'text-amber-700' : 'text-amber-300/80'}`}>
-                  Navigate to any standard http/https webpage or localhost to inspect components.
-                </p>
+            {/* 1. Status Pill Bar */}
+            <div
+              className={`w-full rounded-2xl px-4 py-2.5 border shadow-xs flex items-center gap-2.5 transition-colors ${
+                !pageSupported
+                  ? 'bg-rose-50/80 border-rose-200/80 text-rose-800'
+                  : isInspecting
+                  ? 'bg-blue-50/80 border-blue-200/80 text-[#0066ff]'
+                  : 'bg-[#eafaf4] border-emerald-200/70 text-slate-800'
+              }`}
+            >
+              {!pageSupported ? (
+                <div className="w-2.5 h-2.5 rounded-full bg-rose-500 shrink-0" />
+              ) : isInspecting ? (
+                <div className="w-2.5 h-2.5 rounded-full bg-[#0066ff] animate-pulse shadow-[0_0_8px_rgba(0,102,255,0.6)] shrink-0" />
+              ) : (
+                <div className="w-2.5 h-2.5 rounded-full bg-[#10b981] shadow-[0_0_8px_rgba(16,185,129,0.5)] shrink-0" />
               )}
+              <span className="text-xs font-semibold">
+                {statusMessage}
+              </span>
             </div>
 
-            {/* Primary Action Button */}
-            <Button
-              size="lg"
-              variant={isInspecting ? 'danger' : 'primary'}
-              icon={isInspecting ? XCircle : Crosshair}
+            {/* 2. Big Primary Action Button */}
+            <button
+              type="button"
               disabled={!pageSupported}
               onClick={handleToggleInspection}
-              className="w-full text-center shadow-md py-3"
+              className={`w-full py-3.5 px-4 rounded-2xl text-white font-bold text-sm shadow-[0_8px_22px_rgba(0,102,255,0.32)] flex items-center justify-center gap-2.5 transition-all transform active:scale-[0.98] ${
+                isInspecting
+                  ? 'bg-gradient-to-r from-rose-500 via-rose-600 to-rose-700 hover:from-rose-600 hover:to-rose-800 shadow-[0_8px_20px_rgba(225,29,72,0.32)]'
+                  : 'bg-gradient-to-r from-[#0080ff] via-[#0066ff] to-[#0052cc] hover:from-[#0073e6] hover:to-[#0047b3]'
+              }`}
             >
-              {isInspecting ? 'Stop Inspection' : 'Inspect Element'}
-            </Button>
+              {isInspecting ? (
+                <>
+                  <XCircle className="w-5 h-5 text-white" />
+                  <span>Stop Inspection</span>
+                </>
+              ) : (
+                <>
+                  <div className="w-5 h-5 rounded-full border-2 border-white/90 flex items-center justify-center">
+                    <Crosshair className="w-3.5 h-3.5 text-white" />
+                  </div>
+                  <span>Inspect Element</span>
+                </>
+              )}
+            </button>
 
-            {/* Selected Element Summary if present */}
-            {selectedElement && (
-              <div className={`p-3 rounded-lg border space-y-2 ${
-                isLight ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-800/60 border-slate-700/80'
-              }`}>
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-sky-500">
-                    Inspected Element
+            {/* 3. Target Editor Card */}
+            <div
+              className="p-3.5 rounded-2xl bg-white border border-slate-100 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.04)] relative overflow-hidden flex items-center justify-between"
+              style={{
+                background:
+                  'radial-gradient(circle at 95% 20%, rgba(219, 234, 254, 0.4) 0%, transparent 60%), #ffffff',
+              }}
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-2xl bg-gradient-to-b from-white to-blue-50/80 border border-blue-100 shadow-xs flex items-center justify-center text-[#0066ff] shrink-0">
+                  <Code className="w-5 h-5 text-[#0066ff]" />
+                </div>
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5">
+                    TARGET EDITOR
                   </span>
-                  <span className={`text-[10px] font-mono ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-                    {selectedElement.dimensions?.width} &times; {selectedElement.dimensions?.height}px
+                  <span className="text-sm font-bold text-slate-900 block leading-tight">
+                    {getIdeDisplayName(settings.ide)}
                   </span>
                 </div>
-                <div className={`font-mono text-xs font-semibold truncate ${isLight ? 'text-slate-800' : 'text-slate-200'}`}>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab('settings')}
+                className="px-3.5 py-1.5 rounded-full bg-[#edf5ff] hover:bg-blue-100/80 border border-blue-200/60 text-xs font-bold text-[#0066ff] shadow-xs transition-colors"
+              >
+                Change
+              </button>
+            </div>
+
+            {/* 4. Keyboard Shortcuts Reference Card */}
+            <div className="p-3.5 rounded-2xl bg-white border border-slate-100 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.03)] space-y-2.5">
+              {/* Row 1 */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Keyboard className="w-4 h-4 text-slate-600 shrink-0" />
+                  <span className="text-xs font-bold text-slate-800">Hold to Inspect</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs font-medium text-slate-400">Hold</span>
+                  <span className="px-2 py-0.5 rounded-lg bg-[#edf5ff] border border-blue-200/70 text-xs font-mono font-bold text-[#0066ff] shadow-xs">
+                    Shift
+                  </span>
+                </div>
+              </div>
+
+              <div className="border-b border-slate-100/90" />
+
+              {/* Row 2 */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <LogOut className="w-4 h-4 text-slate-600 shrink-0" />
+                  <span className="text-xs font-bold text-slate-800">Exit Inspection</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs font-medium text-slate-400">Release</span>
+                  <span className="px-2 py-0.5 rounded-lg bg-[#edf5ff] border border-blue-200/70 text-xs font-mono font-bold text-[#0066ff] shadow-xs">
+                    Shift
+                  </span>
+                  <span className="text-xs text-slate-400 font-sans mx-0.5">/</span>
+                  <span className="px-2 py-0.5 rounded-lg bg-[#edf5ff] border border-blue-200/70 text-xs font-mono font-bold text-[#0066ff] shadow-xs">
+                    Esc
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* 5. Last Inspected Element Summary (if present) */}
+            {selectedElement && (
+              <div className="p-3.5 rounded-2xl bg-white border border-slate-100 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.03)] space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#0066ff]">
+                    Last Inspected Element
+                  </span>
+                  <span className="text-[10px] font-mono text-slate-400 font-semibold">
+                    {selectedElement.dimensions?.width} &times; {selectedElement.dimensions?.height} px
+                  </span>
+                </div>
+                <div className="font-mono text-xs font-bold text-slate-900 truncate">
                   &lt;{selectedElement.tagName}
                   {selectedElement.id && <span className="text-amber-500">#{selectedElement.id}</span>}
                   {selectedElement.classList?.length > 0 && (
-                    <span className={isLight ? 'text-slate-500' : 'text-slate-400'}>.{selectedElement.classList.slice(0, 2).join('.')}</span>
+                    <span className="text-slate-500">.{selectedElement.classList.slice(0, 2).join('.')}</span>
                   )}
                   &gt;
                 </div>
-                <div className={`flex items-center justify-between text-xs pt-1 border-t ${
-                  isLight ? 'border-slate-100' : 'border-slate-800'
-                }`}>
-                  <span className={`font-mono text-[11px] truncate max-w-[220px] ${isLight ? 'text-slate-600' : 'text-slate-400'}`} title={selectedElement.selector}>
+                <div className="flex items-center justify-between pt-1 border-t border-slate-100 text-xs">
+                  <span className="font-mono text-[11px] truncate max-w-[220px] text-[#0066ff]" title={selectedElement.selector}>
                     {selectedElement.selector}
                   </span>
                   <button
                     type="button"
                     onClick={() => handleCopySelector(selectedElement.selector)}
-                    className={`p-1 rounded transition-colors ${
-                      isLight ? 'hover:bg-slate-100 text-slate-500 hover:text-slate-800' : 'hover:bg-slate-700 text-slate-300 hover:text-white'
-                    }`}
+                    className="p-1 rounded-md text-slate-400 hover:text-slate-800 hover:bg-slate-100 transition-colors"
                     title="Copy Selector"
                   >
                     {copied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
@@ -316,85 +388,46 @@ export default function App() {
                 </div>
               </div>
             )}
-
-            {/* Configured Editor Banner */}
-            <div className={`p-2.5 rounded-lg border flex items-center justify-between ${
-              isLight ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-800/40 border-slate-800'
-            }`}>
-              <div className="flex items-center gap-2">
-                <Code className="w-4 h-4 text-sky-500" />
-                <div>
-                  <div className={`text-[11px] uppercase font-semibold tracking-wider ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
-                    Target Editor
-                  </div>
-                  <div className={`text-xs font-medium ${isLight ? 'text-slate-800' : 'text-slate-200'}`}>
-                    {getIdeDisplayName(settings.ide)}
-                  </div>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setActiveTab('settings')}
-                className="text-xs text-sky-500 hover:text-sky-600 font-medium hover:underline"
-              >
-                Change
-              </button>
-            </div>
-
-            {/* Quick Instructions & Keyboard Shortcut */}
-            <div className={`space-y-2 pt-2 border-t ${isLight ? 'border-slate-200' : 'border-slate-800'}`}>
-              <div className={`flex items-center justify-between text-xs ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
-                <span>Hold to Inspect</span>
-                <kbd className={`px-1.5 py-0.5 text-[11px] font-mono rounded border ${
-                  isLight ? 'bg-slate-200 text-slate-800 border-slate-300' : 'bg-slate-800 text-sky-300 border-slate-700'
-                }`}>
-                  Hold Shift
-                </kbd>
-              </div>
-              <div className={`flex items-center justify-between text-xs ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
-                <span>Exit Inspection</span>
-                <kbd className={`px-1.5 py-0.5 text-[11px] font-mono rounded border ${
-                  isLight ? 'bg-slate-200 text-slate-800 border-slate-300' : 'bg-slate-800 text-slate-300 border-slate-700'
-                }`}>
-                  Release Shift / Esc
-                </kbd>
-              </div>
-            </div>
           </>
         ) : (
-          <>
-            {/* Settings Tab */}
-            <SectionTitle
-              title="Preferred Editor"
-              subtitle="Choose which editor opens detected source files"
-            />
-            <IDESettings
-              selectedIde={settings.ide}
-              onSelectIde={(ide) => handleUpdateSettings({ ide })}
-            />
-
-            <div className="pt-2">
-              <SectionTitle
-                title="Inspector Preferences"
-                subtitle="Customize overlay and behavior"
+          /* Settings Tab */
+          <div className="space-y-3.5">
+            <div className="p-3.5 rounded-2xl bg-white border border-slate-100 shadow-sm space-y-3">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                <div className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                  Target Editor
+                </div>
+                <span className="text-[10px] font-semibold text-[#0066ff] bg-blue-50 px-2 py-0.5 rounded-full">
+                  Auto-opens on click
+                </span>
+              </div>
+              <IDESettings
+                selectedIde={settings.ide}
+                onSelectIde={(ide) => handleUpdateSettings({ ide })}
               />
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-white border border-slate-100 shadow-sm space-y-3">
+              <div className="text-xs font-bold uppercase tracking-wider text-slate-400 border-b border-slate-100 pb-2">
+                Preferences
+              </div>
               <GeneralSettings
                 settings={settings}
                 onUpdateSettings={handleUpdateSettings}
               />
             </div>
-          </>
+          </div>
         )}
       </main>
 
-      {/* Footer */}
-      <footer className={`px-4 py-2.5 border-t flex items-center justify-between text-[11px] ${
-        isLight ? 'bg-white/80 border-slate-200 text-slate-500' : 'bg-slate-950/80 border-slate-800/80 text-slate-500'
-      }`}>
-        <span className="flex items-center gap-1">
-          <Sparkles className="w-3 h-3 text-sky-500" /> DevLocator Developer Tool
+      {/* Bottom Footer */}
+      <footer className="px-4 py-2.5 border-t border-slate-100/90 flex items-center justify-between text-xs bg-white/60">
+        <span className="flex items-center gap-1.5 text-slate-700 font-semibold text-xs">
+          <Sparkles className="w-3.5 h-3.5 text-[#0066ff]" /> DevLocator Developer Tool
         </span>
-        <span>Manifest V3</span>
+        <span className="px-2.5 py-0.5 rounded-full bg-slate-100 text-[10px] font-semibold text-slate-500 border border-slate-200/60">
+          Manifest V3
+        </span>
       </footer>
     </div>
   );

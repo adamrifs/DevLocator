@@ -1,4 +1,18 @@
 import { detectFramework } from './detect-framework.js';
+import { findSourceLocation } from '../source-locator/find-source.js';
+
+function findMarkedTarget(root, selector) {
+  const target = root.querySelector(selector);
+  if (target) return target;
+
+  for (const element of root.querySelectorAll('*')) {
+    if (!element.shadowRoot) continue;
+    const nestedTarget = findMarkedTarget(element.shadowRoot, selector);
+    if (nestedTarget) return nestedTarget;
+  }
+
+  return null;
+}
 
 /**
  * Initializes the main-world bridge.
@@ -76,17 +90,16 @@ export function initMainWorldBridge() {
     if (!event.data || event.data.source !== 'DEVLOCATOR_ISOLATED') return;
 
     if (event.data.action === 'INSPECT_ELEMENT') {
-      const { requestId, selector } = event.data;
-      let targetElement = null;
+      const { requestId, inShadowRoot } = event.data;
+      if (typeof requestId !== 'string') return;
 
       try {
-        // Find element by selector or marker attribute
-        targetElement =
-          document.querySelector('[data-devlocator-inspect-target="true"]') ||
-          (selector ? document.querySelector(selector) : null) ||
-          document.body;
-
-        const frameworkInfo = detectFramework(targetElement);
+        const selector = `[data-devlocator-inspect-target="${CSS.escape(requestId)}"]`;
+        const targetElement = inShadowRoot
+          ? findMarkedTarget(document, selector)
+          : document.querySelector(selector);
+        const frameworkInfo = targetElement ? detectFramework(targetElement) : null;
+        const sourceLocation = targetElement ? findSourceLocation(targetElement) : null;
 
         // Send reply back to isolated world
         window.postMessage(
@@ -95,6 +108,7 @@ export function initMainWorldBridge() {
             action: 'INSPECT_RESULT',
             requestId,
             frameworkInfo,
+            sourceLocation,
           },
           '*'
         );
