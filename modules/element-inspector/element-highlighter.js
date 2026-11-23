@@ -42,6 +42,7 @@ export class ElementHighlighter {
     this.container.id = DEVLOCATOR_ROOT_ID;
     this.container.setAttribute(DEVLOCATOR_ATTRIBUTE, 'true');
     this.container.style.cssText = `
+      all: initial;
       position: fixed;
       inset: 0;
       width: 100vw;
@@ -56,6 +57,7 @@ export class ElementHighlighter {
     this.highlightBox = document.createElement('div');
     this.highlightBox.setAttribute(DEVLOCATOR_ATTRIBUTE, 'true');
     this.highlightBox.style.cssText = `
+      all: initial;
       position: fixed;
       pointer-events: none;
       box-sizing: border-box;
@@ -71,6 +73,7 @@ export class ElementHighlighter {
     this.tooltip = document.createElement('div');
     this.tooltip.setAttribute(DEVLOCATOR_ATTRIBUTE, 'true');
     this.tooltip.style.cssText = `
+      all: initial;
       position: fixed;
       pointer-events: none;
       box-sizing: border-box;
@@ -79,7 +82,7 @@ export class ElementHighlighter {
       gap: 6px;
       padding: 4px 10px;
       border-radius: 9999px;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace;
+      font-family: 'DevLocator Poppins', Arial, sans-serif;
       font-size: 11px;
       font-weight: 500;
       line-height: 1.2;
@@ -99,7 +102,7 @@ export class ElementHighlighter {
     this.container.appendChild(this.tooltip);
 
     // Attach to document body or documentElement
-    (document.body || document.documentElement).appendChild(this.container);
+    document.documentElement.appendChild(this.container);
   }
 
   /**

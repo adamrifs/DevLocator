@@ -7,6 +7,10 @@ export default {
   darkMode: 'class',
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['DevLocator Poppins', 'Arial', 'sans-serif'],
+        mono: ['DevLocator Poppins', 'Arial', 'sans-serif'],
+      },
       colors: {
         devlocator: {
           bg: '#0f172a',

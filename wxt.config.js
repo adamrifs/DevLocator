@@ -40,7 +40,7 @@ export default defineConfig({
     },
     web_accessible_resources: [
       {
-        resources: ['content-scripts/bridge.js'],
+        resources: ['content-scripts/bridge.js', 'fonts/Poppins-*.ttf', 'icons/icon-128.png'],
         matches: ['<all_urls>'],
       },
     ],

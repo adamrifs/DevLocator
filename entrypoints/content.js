@@ -20,6 +20,11 @@ export default defineContentScript({
   matches: ['<all_urls>'],
   runAt: 'document_idle',
   main() {
+    for (const [name, weight] of [['Regular', '400'], ['Medium', '500'], ['SemiBold', '600'], ['Bold', '700']]) {
+      const font = new FontFace('DevLocator Poppins', `url("${chrome.runtime.getURL(`fonts/Poppins-${name}.ttf`)}")`, { weight });
+      document.fonts.add(font);
+      font.load().catch(() => {});
+    }
     let picker = null;
     let currentSettings = null;
     let lastSelectedDetails = null;
@@ -234,6 +239,7 @@ export default defineContentScript({
       removeInspectorPanel();
       const { host, shadow } = createInspectorShadow();
       host.id = DEVLOCATOR_PANEL_HOST_ID;
+      host.dataset.theme = (settings || currentSettings)?.theme || DEFAULT_SETTINGS.theme;
       host.style.pointerEvents = 'auto';
 
       // Keep page-level smooth-scroll handlers from intercepting native panel scrolling.

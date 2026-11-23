@@ -25,6 +25,7 @@ export default function GeneralSettings({ settings, onUpdateSettings }) {
         <div className="grid grid-cols-2 gap-2">
           <button
             type="button"
+            aria-pressed={currentTheme === 'light'}
             onClick={() => onUpdateSettings({ theme: 'light' })}
             className={`flex items-center justify-center gap-2 p-2.5 rounded-xl border text-xs font-semibold transition-all ${
               currentTheme === 'light'
@@ -37,6 +38,7 @@ export default function GeneralSettings({ settings, onUpdateSettings }) {
           </button>
           <button
             type="button"
+            aria-pressed={currentTheme === 'dark'}
             onClick={() => onUpdateSettings({ theme: 'dark' })}
             className={`flex items-center justify-center gap-2 p-2.5 rounded-xl border text-xs font-semibold transition-all ${
               currentTheme === 'dark'

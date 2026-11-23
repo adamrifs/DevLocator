@@ -98,6 +98,7 @@ export class ElementPicker {
     this.banner = document.createElement('div');
     this.banner.setAttribute(DEVLOCATOR_ATTRIBUTE, 'true');
     this.banner.style.cssText = `
+      all: initial;
       position: fixed;
       top: 16px;
       left: 50%;
@@ -105,13 +106,16 @@ export class ElementPicker {
       display: flex;
       align-items: center;
       gap: 12px;
+      box-sizing: border-box;
+      width: max-content;
+      max-width: calc(100vw - 24px);
       padding: 7px 16px;
       background: rgba(255, 255, 255, 0.96);
       border: 1px solid rgba(226, 232, 240, 0.95);
       box-shadow: 0 14px 38px -6px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.04);
       border-radius: 9999px;
       z-index: 2147483647;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-family: 'DevLocator Poppins', Arial, sans-serif;
       font-size: 12px;
       font-weight: 500;
       color: #18181b;
@@ -121,10 +125,10 @@ export class ElementPicker {
 
     this.banner.innerHTML = `
       <div style="display: flex; align-items: center; gap: 7px;">
-        <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #0066ff; box-shadow: 0 0 10px rgba(0,102,255,0.6);"></span>
+        <img src="${chrome.runtime.getURL('icons/icon-128.png')}" alt="" style="width: 24px; height: 24px; object-fit: contain; flex-shrink: 0;">
         <strong style="color: #0066ff; font-weight: 700;">DevLocator</strong>
       </div>
-      <span style="color: #64748b; font-size: 11px;">Hold Shift &bull; Click to inspect &bull; &uarr;/&darr; Parent/Child &bull; Release Shift / <kbd style="background: #f1f5f9; border: 1px solid #e2e8f0; color: #18181b; padding: 1px 5px; border-radius: 4px; font-family: monospace;">Esc</kbd></span>
+      <span style="min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #64748b; font-size: 11px;">Hold Shift &bull; Click to inspect &bull; &uarr;/&darr; Parent/Child &bull; Release Shift / Esc</span>
       <button id="__devlocator-exit-btn__" type="button" style="
         background: #f1f5f9;
         color: #64748b;
@@ -139,7 +143,7 @@ export class ElementPicker {
       ">Exit</button>
     `;
 
-    (document.body || document.documentElement).appendChild(this.banner);
+    document.documentElement.appendChild(this.banner);
 
     const exitBtn = this.banner.querySelector('#__devlocator-exit-btn__');
     if (exitBtn) {

@@ -21,7 +21,7 @@ import IDESettings from '../../components/settings/IDESettings.jsx';
 import GeneralSettings from '../../components/settings/GeneralSettings.jsx';
 import SourceSetupGuide from '../../components/settings/SourceSetupGuide.jsx';
 import Toggle from '../../components/ui/Toggle.jsx';
-import { getSettings, saveSettings, DEFAULT_SETTINGS } from '../../utils/storage.js';
+import { getSettings, saveSettings, onSettingsChange, DEFAULT_SETTINGS } from '../../utils/storage.js';
 import { MESSAGE_TYPES } from '../../utils/messages.js';
 import { getProjectFolder, getProjectSite, saveProjectFolder } from '../../utils/project-folders.js';
 
@@ -46,6 +46,7 @@ export default function App() {
   // Load saved settings
   useEffect(() => {
     getSettings().then((loaded) => setSettings(loaded));
+    return onSettingsChange(setSettings);
   }, []);
 
   // Check current tab inspection status & selected element
@@ -214,8 +215,6 @@ export default function App() {
     );
   }
 
-  const isLight = settings.theme === 'light';
-
   const getIdeDisplayName = (ideId) => {
     switch (ideId) {
       case 'vscode':
@@ -230,6 +229,7 @@ export default function App() {
 
   return (
     <div
+      data-theme={settings.theme}
       className="flex flex-col h-full select-none text-slate-900"
       style={{
         background:
@@ -240,8 +240,8 @@ export default function App() {
       <header className="px-4 pt-4 pb-2.5 flex items-center justify-between">
         {/* Left Brand Identity */}
         <div className="flex items-center gap-2.5">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-b from-[#1d63ff] to-[#0055ff] shadow-[0_4px_14px_rgba(0,102,255,0.35)] flex items-center justify-center text-white shrink-0">
-            <Crosshair className="w-5 h-5 text-white" />
+          <div className="w-10 h-10 rounded-2xl bg-slate-100 flex items-center justify-center shrink-0">
+            <img src="/icons/icon-128.png" alt="" className="w-9 h-9 object-contain" />
           </div>
           <div className="flex items-center gap-1.5">
             <h1 className="text-base font-bold text-slate-900 tracking-tight">

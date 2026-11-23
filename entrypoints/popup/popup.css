@@ -2,6 +2,38 @@
 @tailwind components;
 @tailwind utilities;
 
+@font-face {
+  font-family: 'DevLocator Poppins';
+  src: url('/fonts/Poppins-Regular.ttf') format('truetype');
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'DevLocator Poppins';
+  src: url('/fonts/Poppins-Medium.ttf') format('truetype');
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'DevLocator Poppins';
+  src: url('/fonts/Poppins-SemiBold.ttf') format('truetype');
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'DevLocator Poppins';
+  src: url('/fonts/Poppins-Bold.ttf') format('truetype');
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+}
+
 html, body {
   margin: 0;
   padding: 0;
@@ -11,7 +43,7 @@ html, body {
   min-height: 560px;
   background-color: #f8fafd;
   color: #0f172a;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  font-family: 'DevLocator Poppins', Arial, sans-serif;
   user-select: none;
   overflow-x: hidden;
   box-sizing: border-box;
@@ -26,3 +58,22 @@ html, body {
   background-color: #f8fafd;
 }
 
+
+
+/* Saved dark theme */
+[data-theme="dark"] { background: #0b1220 !important; color: #e2e8f0 !important; color-scheme: dark; }
+[data-theme="dark"] :is([class~="bg-white"], [class*="bg-white/"], [class*="bg-slate-50"], [class*="bg-slate-100"], [class*="bg-slate-200"], [class*="bg-[#f4f5f9]"], [class*="bg-[#f7faff]"], [class*="bg-[#edf4ff]"], [class*="bg-[#edf5ff]"], [class*="bg-[#eafaf4]"], [class*="bg-[#e1f8f4]"], [class*="bg-[#cde4fe]"], [class*="bg-[#fff7ee]"], [class*="bg-blue-50"], [class*="bg-blue-100"], [class*="bg-emerald-50"], [class*="bg-rose-50"], [class*="bg-rose-100"]) { background: #1b2940 !important; }
+[data-theme="dark"] :is([class*="border-slate-100"], [class*="border-slate-200"], [class*="border-slate-300"], [class*="border-white/"], [class*="border-blue-100"], [class*="border-blue-200"], [class*="border-blue-300"]) { border-color: #344762 !important; }
+[data-theme="dark"] :is([class*="text-slate-900"], [class*="text-slate-800"], [class*="text-slate-700"]) { color: #e2e8f0 !important; }
+[data-theme="dark"] :is([class*="text-slate-600"], [class*="text-slate-500"], [class*="text-slate-400"], [class*="text-slate-300"]) { color: #b3c3d8 !important; }
+[data-theme="dark"] :is([class*="text-[#0066ff]"], [class*="text-blue-600"], [class*="text-blue-700"]) { color: #78b7ff !important; }
+[data-theme="dark"] :is([class*="text-emerald-700"], [class*="text-emerald-600"]) { color: #6ee7b7 !important; }
+[data-theme="dark"] :is([class*="text-amber-700"], [class*="text-amber-600"]) { color: #fcd34d !important; }
+[data-theme="dark"] :is([class*="text-rose-800"], [class*="text-rose-700"]) { color: #fda4af !important; }
+[data-theme="dark"] :is(input:not([type="range"]):not([type="radio"]), select, textarea) { background-color: #101b2d !important; color: #e2e8f0 !important; border-color: #344762 !important; }
+[data-theme="dark"] :is(button[aria-pressed="true"], input:checked + span) { background: #183c6d !important; border-color: #4383cf !important; color: #a5d1ff !important; }
+[data-theme="dark"] :is(button:hover, summary:hover) { filter: brightness(1.13); }
+[data-theme="dark"] .devlocator-dock-handle { background: linear-gradient(160deg, #1c304c, #101d30) !important; border-color: #3a5474 !important; color: #e2e8f0 !important; }
+[data-theme="dark"] [style*="radial-gradient"] { background: #1b2940 !important; }
+[data-theme="dark"] button[role="switch"] span, [data-theme="dark"] button[aria-pressed] svg { color: inherit; }
+[data-theme="dark"] button[role="switch"] span { background: #fff !important; }

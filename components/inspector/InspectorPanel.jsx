@@ -210,7 +210,9 @@ export default function InspectorPanel({
           requestAnimationFrame(() => panel.current?.focus({ preventScroll: true }));
         }}
       >
-        <span aria-hidden="true" />Inspector
+        <span className="devlocator-dock-icon" aria-hidden="true"><img src={chrome.runtime.getURL('icons/icon-128.png')} alt="" /></span>
+        <span className="devlocator-dock-label">Inspector</span>
+        <ArrowUp className="devlocator-dock-arrow" size={14} aria-hidden="true" />
       </button>
     )}
     <div
@@ -224,7 +226,7 @@ export default function InspectorPanel({
       className={`flex flex-col font-sans select-none bg-[#f4f5f9] border border-white/80 shadow-[0_24px_60px_-12px_rgba(0,0,0,0.14),0_0_0_1px_rgba(0,0,0,0.04)] ${
         isEmbedded
           ? 'w-full h-full rounded-2xl'
-          : 'fixed bottom-5 right-5 z-[2147483647] w-[460px] max-h-[min(640px,calc(100dvh_-_2.5rem))] rounded-[32px] overflow-hidden overscroll-contain'
+          : 'fixed bottom-5 right-5 z-[2147483647] w-[min(460px,calc(100vw_-_2.5rem))] max-h-[min(640px,calc(100dvh_-_2.5rem))] rounded-[32px] overflow-hidden overscroll-contain'
       }`}
     >
       {/* Top Header */}
