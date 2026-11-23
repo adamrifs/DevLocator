@@ -1,6 +1,7 @@
 import React from 'react';
 import { Moon, Sun, Keyboard } from 'lucide-react';
 import Toggle from '../ui/Toggle.jsx';
+import { DEFAULT_SETTINGS } from '../../utils/storage.js';
 
 const HIGHLIGHT_COLORS = [
   { name: 'Sky Blue', value: '#38bdf8' },
@@ -12,6 +13,7 @@ const HIGHLIGHT_COLORS = [
 
 export default function GeneralSettings({ settings, onUpdateSettings }) {
   const currentTheme = settings.theme || 'light';
+  const highlightColor = settings.highlightColor || DEFAULT_SETTINGS.highlightColor;
 
   return (
     <div className="space-y-4">
@@ -82,11 +84,11 @@ export default function GeneralSettings({ settings, onUpdateSettings }) {
           <div className="flex items-center gap-1.5">
             <span
               className="w-3.5 h-3.5 rounded-full border border-slate-300 inline-block shadow-xs"
-              style={{ backgroundColor: settings.highlightColor || '#0066ff' }}
+              style={{ backgroundColor: highlightColor }}
             />
             <input
               type="text"
-              value={settings.highlightColor || '#0066ff'}
+              value={highlightColor}
               onChange={(e) => onUpdateSettings({ highlightColor: e.target.value })}
               className="w-20 px-1.5 py-0.5 text-[11px] font-mono bg-slate-50 border border-slate-200 rounded-lg text-slate-800 text-center uppercase"
             />
@@ -101,7 +103,7 @@ export default function GeneralSettings({ settings, onUpdateSettings }) {
               title={c.name}
               onClick={() => onUpdateSettings({ highlightColor: c.value })}
               className={`w-6 h-6 rounded-full border-2 transition-transform ${
-                settings.highlightColor === c.value
+                highlightColor === c.value
                   ? 'border-[#0066ff] scale-110 shadow-sm'
                   : 'border-transparent hover:scale-105'
               }`}

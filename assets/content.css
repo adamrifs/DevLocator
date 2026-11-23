@@ -31,3 +31,44 @@
 ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
 }
+
+[data-dock-state] {
+  transition: transform 360ms cubic-bezier(.22, 1, .36, 1), opacity 240ms ease;
+}
+[data-dock-state="closed"] {
+  transform: translateY(calc(100% + 2rem));
+  opacity: 0;
+  pointer-events: none;
+}
+.devlocator-dock-handle {
+  position: fixed;
+  bottom: 0;
+  right: 2.5rem;
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  min-width: 96px;
+  padding: 7px 18px 6px;
+  border: 1px solid #cbd5e1;
+  border-bottom: 0;
+  border-radius: 16px 16px 0 0;
+  background: #fff;
+  color: #334155;
+  font: 600 11px/1.2 system-ui, sans-serif;
+  box-shadow: 0 -3px 14px rgb(15 23 42 / 12%);
+  transform: translateY(110%);
+  transition: transform 300ms cubic-bezier(.22, 1, .36, 1);
+}
+.devlocator-dock-handle[data-visible="true"] {
+  transform: translateY(0);
+  transition-delay: 100ms;
+}
+.devlocator-dock-handle span {
+  width: 30px;
+  height: 3px;
+  border-radius: 2px;
+  background: #94a3b8;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-dock-state], .devlocator-dock-handle { transition: none; }
+}

@@ -11,13 +11,25 @@ import {
   Check,
   Keyboard,
   LogOut,
+  PanelBottom,
+  PanelsTopLeft,
+  ShieldAlert,
+  ChevronDown,
+  BookOpen,
 } from 'lucide-react';
 import IDESettings from '../../components/settings/IDESettings.jsx';
 import GeneralSettings from '../../components/settings/GeneralSettings.jsx';
 import SourceSetupGuide from '../../components/settings/SourceSetupGuide.jsx';
+import Toggle from '../../components/ui/Toggle.jsx';
 import { getSettings, saveSettings, DEFAULT_SETTINGS } from '../../utils/storage.js';
 import { MESSAGE_TYPES } from '../../utils/messages.js';
 import { getProjectFolder, getProjectSite, saveProjectFolder } from '../../utils/project-folders.js';
+
+const INSPECTOR_MODES = [
+  { value: 'dock', title: 'Auto-dock', description: 'Slide into the bottom bar after 3 seconds.', icon: PanelBottom },
+  { value: 'always', title: 'Keep open', description: 'Leave Overview visible after the jump.', icon: PanelsTopLeft },
+  { value: 'on_failure', title: 'Show on failure', description: 'Open Overview if the jump fails.', icon: ShieldAlert },
+];
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('inspector'); // 'inspector' | 'settings'
@@ -432,14 +444,41 @@ export default function App() {
                 <div className="text-xs font-bold uppercase tracking-wider text-slate-400">
                   Target Editor
                 </div>
-                <span className="text-[10px] font-semibold text-[#0066ff] bg-blue-50 px-2 py-0.5 rounded-full">
-                  Auto-opens on click
-                </span>
               </div>
               <IDESettings
                 selectedIde={settings.ide}
                 onSelectIde={(ide) => handleUpdateSettings({ ide })}
               />
+              <fieldset className="space-y-2 border-t border-slate-100 pt-2">
+                <legend className="pr-2 text-xs font-semibold text-slate-900">Inspector after Shift-click</legend>
+                {INSPECTOR_MODES.map(({ value, title, description, icon: Icon }) => (
+                  <label key={value} className="block cursor-pointer">
+                    <input
+                      type="radio"
+                      name="inspector-after-jump"
+                      value={value}
+                      checked={(settings.inspectorAfterJump || DEFAULT_SETTINGS.inspectorAfterJump) === value}
+                      onChange={() => handleUpdateSettings({ inspectorAfterJump: value })}
+                      className="peer sr-only"
+                    />
+                    <span className="flex items-center gap-2.5 rounded-xl border border-slate-200 px-2.5 py-2 transition-colors hover:border-blue-200 peer-checked:border-blue-300 peer-checked:bg-blue-50 peer-checked:text-blue-700 peer-focus-visible:ring-2 peer-focus-visible:ring-blue-500">
+                      <Icon className="h-4 w-4 shrink-0 text-current" aria-hidden="true" />
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-xs font-semibold">{title}</span>
+                        <span className="block text-[11px] leading-snug text-slate-600">{description}</span>
+                      </span>
+                    </span>
+                  </label>
+                ))}
+                {settings.inspectorAfterJump === 'on_failure' && (
+                  <Toggle
+                    label="Show success notification"
+                    description="Confirm the source jump with a brief message."
+                    checked={settings.showJumpToast}
+                    onChange={(checked) => handleUpdateSettings({ showJumpToast: checked })}
+                  />
+                )}
+              </fieldset>
             </div>
 
             {projectSite && (
@@ -464,8 +503,6 @@ export default function App() {
               </form>
             )}
 
-            <SourceSetupGuide framework={selectedElement?.framework} sourceFile={selectedElement?.sourceFile} />
-
             <div className="p-3.5 rounded-2xl bg-white border border-slate-100 shadow-sm space-y-3">
               <div className="text-xs font-bold uppercase tracking-wider text-slate-400 border-b border-slate-100 pb-2">
                 Preferences
@@ -475,6 +512,16 @@ export default function App() {
                 onUpdateSettings={handleUpdateSettings}
               />
             </div>
+            <details className="group rounded-2xl border border-slate-100 bg-white shadow-sm">
+              <summary className="flex cursor-pointer list-none items-center gap-2.5 p-3.5 text-xs font-semibold text-slate-800 [&::-webkit-details-marker]:hidden">
+                <BookOpen className="h-4 w-4 text-slate-500" aria-hidden="true" />
+                <span className="flex-1">Source jump instructions</span>
+                <ChevronDown className="h-4 w-4 text-slate-500 transition-transform group-open:rotate-180 motion-reduce:transition-none" aria-hidden="true" />
+              </summary>
+              <div className="px-2 pb-2">
+                <SourceSetupGuide framework={selectedElement?.framework} sourceFile={selectedElement?.sourceFile} />
+              </div>
+            </details>
           </div>
         )}
       </main>

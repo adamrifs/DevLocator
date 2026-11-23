@@ -1,4 +1,5 @@
 import { DEVLOCATOR_ROOT_ID, DEVLOCATOR_ATTRIBUTE } from './element-details.js';
+import { DEFAULT_SETTINGS } from '../../utils/storage.js';
 
 /**
  * ElementHighlighter creates and manages an isolated visual overlay
@@ -6,7 +7,7 @@ import { DEVLOCATOR_ROOT_ID, DEVLOCATOR_ATTRIBUTE } from './element-details.js';
  */
 export class ElementHighlighter {
   constructor(options = {}) {
-    this.highlightColor = options.highlightColor || '#38bdf8';
+    this.highlightColor = options.highlightColor || DEFAULT_SETTINGS.highlightColor;
     this.showTooltip = options.showTooltip !== false;
     this.fillOpacity = typeof options.fillOpacity === 'number' ? options.fillOpacity : 0.15;
     this.container = null;

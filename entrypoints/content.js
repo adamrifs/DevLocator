@@ -9,8 +9,9 @@ import {
   extractElementDetails,
   isDevLocatorElement,
 } from '../modules/element-inspector/element-details.js';
-import { getSettings, onSettingsChange } from '../utils/storage.js';
+import { DEFAULT_SETTINGS, getSettings, onSettingsChange } from '../utils/storage.js';
 import { getProjectSite } from '../utils/project-folders.js';
+import { canAutoOpenSource, requestSourceOpen } from '../modules/ide-integration/request-source-open.js';
 import InspectorPanel from '../components/inspector/InspectorPanel.jsx';
 import ErrorBoundary from '../components/ui/ErrorBoundary.jsx';
 import contentCss from '../assets/content.css?inline';
@@ -24,6 +25,8 @@ export default defineContentScript({
     let lastSelectedDetails = null;
     let currentSelectedElement = null;
     let isShiftHeld = false;
+    let inspectionRevision = 0;
+    let jumpToast = null;
     const lastMousePos = { x: 0, y: 0 };
 
     /**
@@ -193,33 +196,50 @@ export default defineContentScript({
       }
     }
 
-    /**
-     * Mounts the React InspectorPanel inside an isolated Shadow DOM container.
-     */
-    function renderInspectorPanel(details, settings, openInIDE = false) {
-      removeInspectorPanel();
-
+    function createInspectorShadow() {
       const host = document.createElement('div');
-      host.id = DEVLOCATOR_PANEL_HOST_ID;
       host.setAttribute(DEVLOCATOR_ATTRIBUTE, 'true');
       host.style.cssText = `
         position: fixed;
         z-index: 2147483647;
-        pointer-events: auto;
       `;
 
-      // Attach Shadow Root for complete CSS and DOM isolation from the page
       const shadow = host.attachShadow({ mode: 'open' });
+      const style = document.createElement('style');
+      style.textContent = contentCss;
+      shadow.appendChild(style);
+      return { host, shadow };
+    }
+
+    function showJumpNotification(message) {
+      const { host, shadow } = createInspectorShadow();
+      host.style.pointerEvents = 'none';
+      const notice = document.createElement('div');
+      notice.setAttribute('role', 'status');
+      notice.className = 'fixed bottom-5 right-5 max-w-[calc(100vw_-_2.5rem)] break-words rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-semibold text-emerald-800 shadow-lg';
+      shadow.appendChild(notice);
+      (document.body || document.documentElement).appendChild(host);
+      notice.textContent = message;
+      jumpToast = host;
+      setTimeout(() => {
+        host.remove();
+        if (jumpToast === host) jumpToast = null;
+      }, 3500);
+    }
+
+    /**
+     * Mounts the React InspectorPanel inside an isolated Shadow DOM container.
+     */
+    function renderInspectorPanel(details, settings, openInIDE = false, launchError = null) {
+      removeInspectorPanel();
+      const { host, shadow } = createInspectorShadow();
+      host.id = DEVLOCATOR_PANEL_HOST_ID;
+      host.style.pointerEvents = 'auto';
 
       // Keep page-level smooth-scroll handlers from intercepting native panel scrolling.
       for (const eventType of ['wheel', 'touchmove']) {
         shadow.addEventListener(eventType, (event) => event.stopPropagation(), { passive: true });
       }
-
-      // Inject Tailwind compiled styles into Shadow Root
-      const styleEl = document.createElement('style');
-      styleEl.textContent = contentCss;
-      shadow.appendChild(styleEl);
 
       // Mount point for React
       const mountPoint = document.createElement('div');
@@ -270,6 +290,7 @@ export default defineContentScript({
       };
 
       const effectiveSettings = settings || currentSettings;
+      const inspectorAfterJump = effectiveSettings?.inspectorAfterJump || DEFAULT_SETTINGS.inspectorAfterJump;
 
       root.render(
         React.createElement(
@@ -278,6 +299,8 @@ export default defineContentScript({
           React.createElement(InspectorPanel, {
             details,
             openInIDE,
+            autoDock: openInIDE && inspectorAfterJump === 'dock',
+            launchError,
             ide: effectiveSettings?.ide || 'antigravity',
             theme: effectiveSettings?.theme || 'dark',
             onClose: handleClose,
@@ -293,11 +316,13 @@ export default defineContentScript({
      * Starts element inspection mode.
      */
     function startInspection(settings) {
+      if (picker?.isActive) return;
+      const revision = ++inspectionRevision;
       const effectiveSettings = settings || currentSettings;
 
       if (!picker) {
         picker = new ElementPicker({
-          highlightColor: effectiveSettings?.highlightColor || '#38bdf8',
+          highlightColor: effectiveSettings?.highlightColor || DEFAULT_SETTINGS.highlightColor,
           showTooltip: effectiveSettings?.showTooltip !== false,
           fillOpacity: typeof effectiveSettings?.fillOpacity === 'number' ? effectiveSettings.fillOpacity : 0.15,
         });
@@ -311,23 +336,39 @@ export default defineContentScript({
 
       // Close open panel when entering picker mode
       removeInspectorPanel();
+      jumpToast?.remove();
+      jumpToast = null;
 
       picker.start(
         // onSelect
-        (element, details, openInIDE) => {
+        async (element, details, openInIDE) => {
+          if (revision !== inspectionRevision) return;
           isShiftHeld = false;
           currentSelectedElement = element;
           lastSelectedDetails = details;
           console.log('[DevLocator] Element selected:', details);
-
-          // Render inspector panel on webpage
-          renderInspectorPanel(details, currentSettings || effectiveSettings, openInIDE);
 
           // Notify extension
           chrome.runtime.sendMessage({
             type: MESSAGE_TYPES.ELEMENT_SELECTED,
             details,
           }).catch(() => {});
+
+          const selectionSettings = currentSettings || effectiveSettings;
+          const jumpWithoutPanel = openInIDE && selectionSettings?.inspectorAfterJump === 'on_failure';
+          if (!jumpWithoutPanel || !canAutoOpenSource(details)) {
+            renderInspectorPanel(details, selectionSettings, openInIDE);
+            return;
+          }
+
+          try {
+            const message = await requestSourceOpen(details, selectionSettings.ide || 'antigravity');
+            if (revision === inspectionRevision && selectionSettings.showJumpToast) showJumpNotification(message);
+          } catch (error) {
+            if (revision === inspectionRevision) {
+              renderInspectorPanel(details, currentSettings || selectionSettings, false, error.message);
+            }
+          }
         },
         // onCancel
         () => {

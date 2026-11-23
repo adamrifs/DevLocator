@@ -5,11 +5,13 @@
 export const DEFAULT_SETTINGS = {
   ide: 'antigravity',
   theme: 'dark', // 'dark' | 'light'
-  highlightColor: '#38bdf8',
+  highlightColor: '#f43f5e',
   showTooltip: true,
   shortcut: 'Hold Shift',
   activationMode: 'hold_shift', // 'hold_shift' | 'manual'
   fillOpacity: 0.15,
+  inspectorAfterJump: 'dock',
+  showJumpToast: false,
 };
 
 const STORAGE_KEYS = {

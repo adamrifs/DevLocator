@@ -22,7 +22,7 @@ import {
 import ElementDetails from './ElementDetails.jsx';
 import ComponentTree from './ComponentTree.jsx';
 import SourceSetupGuide from '../settings/SourceSetupGuide.jsx';
-import { MESSAGE_TYPES } from '../../utils/messages.js';
+import { canAutoOpenSource, requestSourceOpen } from '../../modules/ide-integration/request-source-open.js';
 import { formatSourceLocation } from '../../modules/source-locator/source-metadata.js';
 
 /**
@@ -81,6 +81,8 @@ const TABS = [
 export default function InspectorPanel({
   details,
   openInIDE = false,
+  autoDock = false,
+  launchError = null,
   onClose,
   onReinspect,
   onSelectAncestor,
@@ -91,10 +93,11 @@ export default function InspectorPanel({
   const [isMinimized, setIsMinimized] = useState(false);
   const [copiedKey, setCopiedKey] = useState(null);
   const [styleFilter, setStyleFilter] = useState('');
-  const [openStatus, setOpenStatus] = useState(null); // { type: 'loading'|'success'|'error', text: string }
+  const [openStatus, setOpenStatus] = useState(() => launchError ? { type: 'error', text: launchError } : null);
+  const [docked, setDocked] = useState(false);
+  const interacted = useRef(false);
+  const panel = useRef(null);
   const autoLaunchStarted = useRef(false);
-  const canAutoOpenSource = Boolean(details?.sourceFile)
-    && (details.sourceExact || details.sourceStrategy === 'project-search');
 
   const openSource = useCallback(async (copyOnFailure = false) => {
     if (!details?.sourceFile) return;
@@ -106,15 +109,8 @@ export default function InspectorPanel({
     setOpenStatus({ type: 'loading', text: `Opening in ${ide}...` });
 
     try {
-      const response = await chrome.runtime.sendMessage({
-        type: MESSAGE_TYPES.OPEN_SOURCE_IN_IDE,
-        payload: { file, line, column, ide },
-      });
-      if (!response?.success) {
-        throw new Error(response?.message || response?.error || failureMessage);
-      }
-
-      setOpenStatus({ type: 'success', text: response.message || `Opened in ${ide}!` });
+      const message = await requestSourceOpen(details, ide);
+      setOpenStatus({ type: 'success', text: message });
     } catch (error) {
       let text = error.message || failureMessage;
       if (copyOnFailure) {
@@ -130,11 +126,11 @@ export default function InspectorPanel({
   }, [details, ide]);
 
   useEffect(() => {
-    if (openInIDE && canAutoOpenSource && !autoLaunchStarted.current) {
+    if (openInIDE && canAutoOpenSource(details) && !autoLaunchStarted.current) {
       autoLaunchStarted.current = true;
       openSource();
     }
-  }, [openInIDE, canAutoOpenSource, openSource]);
+  }, [openInIDE, details, openSource]);
 
   useEffect(() => {
     if (openStatus?.type !== 'success') return;
@@ -142,6 +138,18 @@ export default function InspectorPanel({
     const timeoutId = setTimeout(() => setOpenStatus(null), 4000);
     return () => clearTimeout(timeoutId);
   }, [openStatus]);
+
+  useEffect(() => {
+    if (!autoDock || openStatus?.type !== 'success') return;
+    const timer = setTimeout(() => {
+      if (!interacted.current) setDocked(true);
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, [autoDock, openStatus]);
+
+  function keepPanelOpen() {
+    interacted.current = true;
+  }
 
   if (!details) return null;
 
@@ -188,7 +196,31 @@ export default function InspectorPanel({
   }
 
   return (
+    <>
+    {autoDock && (
+      <button
+        type="button"
+        className="devlocator-dock-handle"
+        data-visible={docked}
+        disabled={!docked}
+        aria-label="Expand DevLocator inspector"
+        onClick={() => {
+          keepPanelOpen();
+          setDocked(false);
+          requestAnimationFrame(() => panel.current?.focus({ preventScroll: true }));
+        }}
+      >
+        <span aria-hidden="true" />Inspector
+      </button>
+    )}
     <div
+      ref={panel}
+      tabIndex={-1}
+      inert={docked ? '' : undefined}
+      data-dock-state={autoDock ? (docked ? 'closed' : 'open') : undefined}
+      onPointerDown={keepPanelOpen}
+      onFocus={keepPanelOpen}
+      onWheel={keepPanelOpen}
       className={`flex flex-col font-sans select-none bg-[#f4f5f9] border border-white/80 shadow-[0_24px_60px_-12px_rgba(0,0,0,0.14),0_0_0_1px_rgba(0,0,0,0.04)] ${
         isEmbedded
           ? 'w-full h-full rounded-2xl'
@@ -239,7 +271,7 @@ export default function InspectorPanel({
           {!isEmbedded && (
             <button
               type="button"
-              onClick={() => setIsMinimized(true)}
+              onClick={() => autoDock ? setDocked(true) : setIsMinimized(true)}
               className="w-7 h-7 rounded-full bg-white hover:bg-slate-100 border border-slate-200/70 shadow-xs flex items-center justify-center text-slate-500 hover:text-slate-800 transition-all"
               title="Minimize"
             >
@@ -366,11 +398,14 @@ export default function InspectorPanel({
             ) : activeTab === 'overview' ? (
               <section className="flex items-center gap-2 rounded-2xl bg-white border border-slate-200/70 px-3.5 py-3 text-xs text-slate-600">
                 <FileCode className="w-4 h-4 shrink-0 text-slate-400" />
-                <span className="flex-1">Source location unavailable</span>
+                <div className="min-w-0 flex-1">
+                  <p>Source location unavailable</p>
+                  {details.sourceSearchError && <p className="mt-1 text-[11px]">{details.sourceSearchError}</p>}
+                </div>
                 <button
                   type="button"
                   onClick={() => setActiveTab('source')}
-                  className="font-semibold text-[#0066ff] hover:underline"
+                  className="shrink-0 font-semibold text-[#0066ff] hover:underline"
                 >
                   Setup guide
                 </button>
@@ -723,5 +758,6 @@ export default function InspectorPanel({
         </button>
       </div>
     </div>
+    </>
   );
 }
