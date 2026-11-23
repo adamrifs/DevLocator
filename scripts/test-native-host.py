@@ -11,6 +11,7 @@ from unittest.mock import Mock, patch
 # Import companion module
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../native-companion')))
 from devlocator_host import sanitize_and_validate, find_executable, launch_editor
+from project_source import find_project_source
 
 passed = 0
 failed = 0
@@ -118,6 +119,99 @@ def test_missing_editor_does_not_fall_back():
         launch.assert_not_called()
 
 test("Unavailable VS Code reports an error without launching a URL handler", test_missing_editor_does_not_fall_back)
+
+def test_project_template_search():
+    templates = {
+        'resources/views/cart.blade.php': '<button id="checkout" class="primary">{{ $label }}</button>',
+        'shop/templates/product.html': '<button data-testid="add-item">{{ label }}</button>',
+        'src/app/menu.component.html': '<nav aria-label="Main menu">{{ title }}</nav>',
+        'src/App.vue': '<section class="hero">Welcome &amp; enjoy</section>',
+        'src/App.svelte': '<main class="dashboard">{title}</main>',
+        'src/App.tsx': '<button className={"save-button"}>Save</button>',
+        'public/index.html': '<a class="learn-more" href="/docs">Learn more</a>',
+        'public/main.js': 'const link = document.createElement("a");\nlink.id = "js-link";',
+    }
+    with TemporaryDirectory() as directory:
+        root = Path(directory)
+        for name, source in templates.items():
+            path = root / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text('\n  ' + source, encoding='utf-8')
+
+        targets = [
+            ('button', {'id': 'checkout'}, ['primary'], 'Checkout'),
+            ('button', {'data-testid': 'add-item'}, [], 'Add item'),
+            ('nav', {'aria-label': 'Main menu'}, [], ''),
+            ('section', {}, ['hero'], 'Welcome & enjoy'),
+            ('main', {}, ['dashboard'], 'Home'),
+            ('button', {}, ['save-button'], 'Save'),
+            ('a', {}, ['learn-more'], 'Learn more'),
+            ('a', {'id': 'js-link'}, [], ''),
+        ]
+        for name, (tag, attrs, classes, text) in zip(templates, targets):
+            result = find_project_source({
+                'projectRoot': directory, 'pagePath': '/cart',
+                'element': {'tag': tag, 'attributes': attrs, 'classes': classes, 'text': text},
+            })
+            assert result.get('location') == {'file': str(root / name), 'line': 2, 'column': 3}, result
+
+test('Finds markup in Blade, Django, Angular, Vue, Svelte, JSX, HTML and JavaScript files', test_project_template_search)
+
+def test_local_file_search():
+    with TemporaryDirectory() as directory:
+        path = Path(directory) / 'my page.html'
+        path.write_text('<button>First</button>\n<!-- <button>Second</button> -->\n<button>Second</button>')
+        result = find_project_source({
+            'localFile': True, 'pagePath': path.as_uri().removeprefix('file://'),
+            'element': {'tag': 'button', 'text': 'Second'},
+        })
+        assert result.get('location') == {'file': str(path), 'line': 3, 'column': 1}, result
+
+test('Locates an element directly in the HTML file opened by Chrome', test_local_file_search)
+
+def test_ambiguous_project_search():
+    with TemporaryDirectory() as directory, TemporaryDirectory() as outside:
+        root = Path(directory)
+        external = Path(outside) / 'external.html'
+        external.write_text('<button id="target">Click</button>')
+        (root / 'external.html').symlink_to(external)
+        vendor = root / 'vendor'
+        vendor.mkdir()
+        (vendor / 'dependency.html').write_text(external.read_text())
+        request = {'projectRoot': directory, 'element': {'tag': 'button', 'attributes': {'id': 'target'}}}
+        assert 'No matching' in find_project_source(request)['error']
+        (root / 'one.html').write_text(external.read_text())
+        (root / 'two.html').write_text(external.read_text())
+        assert 'Several' in find_project_source(request)['error']
+        valid, _, data = sanitize_and_validate({'file': 'one.html', 'projectRoot': directory})
+        assert valid and data['file'] == str(root / 'one.html')
+        for path in ('external.html', '../outside.html'):
+            assert not sanitize_and_validate({'file': path, 'projectRoot': directory})[0]
+
+test('Rejects tied matches and keeps project-relative lookup inside the configured folder', test_ambiguous_project_search)
+
+def test_duplicate_images_use_ancestor_context():
+    with TemporaryDirectory() as directory:
+        root = Path(directory)
+        navbar = root / 'navbar.html'
+        footer = root / 'footer.html'
+        image = '<img class="brand-name" src="logo.png">'
+        navbar.write_text(f'<header><a><span><img src="icon.png">\n  {image}</span></a></header>')
+        footer.write_text(f'<footer><a><span>\n  {image}</span></a></footer>')
+        element = {'tag': 'img', 'classes': ['brand-name']}
+        request = {'projectRoot': directory, 'pagePath': '/', 'element': element}
+        assert 'Several' in find_project_source(request)['error']
+
+        for tag, path in (('header', navbar), ('footer', footer)):
+            element['ancestors'] = [{'tag': 'span'}, {'tag': 'a'}, {'tag': tag}]
+            result = find_project_source(request)
+            assert result.get('location') == {'file': str(path), 'line': 2, 'column': 3}, result
+
+        footer.write_text(navbar.read_text())
+        element['ancestors'][-1] = {'tag': 'header'}
+        assert 'Several' in find_project_source(request)['error']
+
+test('Uses the surrounding HTML to distinguish identical images in shared components', test_duplicate_images_use_ancestor_context)
 
 print(f"\n============================")
 print(f"Results: {passed} passed, {failed} failed")

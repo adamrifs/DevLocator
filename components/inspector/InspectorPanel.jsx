@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import ElementDetails from './ElementDetails.jsx';
 import ComponentTree from './ComponentTree.jsx';
+import SourceSetupGuide from '../settings/SourceSetupGuide.jsx';
 import { MESSAGE_TYPES } from '../../utils/messages.js';
 import { formatSourceLocation } from '../../modules/source-locator/source-metadata.js';
 
@@ -92,6 +93,8 @@ export default function InspectorPanel({
   const [styleFilter, setStyleFilter] = useState('');
   const [openStatus, setOpenStatus] = useState(null); // { type: 'loading'|'success'|'error', text: string }
   const autoLaunchStarted = useRef(false);
+  const canAutoOpenSource = Boolean(details?.sourceFile)
+    && (details.sourceExact || details.sourceStrategy === 'project-search');
 
   const openSource = useCallback(async (copyOnFailure = false) => {
     if (!details?.sourceFile) return;
@@ -108,7 +111,7 @@ export default function InspectorPanel({
         payload: { file, line, column, ide },
       });
       if (!response?.success) {
-        throw new Error(response?.message || failureMessage);
+        throw new Error(response?.message || response?.error || failureMessage);
       }
 
       setOpenStatus({ type: 'success', text: response.message || `Opened in ${ide}!` });
@@ -127,14 +130,14 @@ export default function InspectorPanel({
   }, [details, ide]);
 
   useEffect(() => {
-    if (openInIDE && details?.sourceExact && !autoLaunchStarted.current) {
+    if (openInIDE && canAutoOpenSource && !autoLaunchStarted.current) {
       autoLaunchStarted.current = true;
       openSource();
     }
-  }, [openInIDE, details?.sourceExact, openSource]);
+  }, [openInIDE, canAutoOpenSource, openSource]);
 
   useEffect(() => {
-    if (!openStatus || openStatus.type === 'loading') return;
+    if (openStatus?.type !== 'success') return;
 
     const timeoutId = setTimeout(() => setOpenStatus(null), 4000);
     return () => clearTimeout(timeoutId);
@@ -189,7 +192,7 @@ export default function InspectorPanel({
       className={`flex flex-col font-sans select-none bg-[#f4f5f9] border border-white/80 shadow-[0_24px_60px_-12px_rgba(0,0,0,0.14),0_0_0_1px_rgba(0,0,0,0.04)] ${
         isEmbedded
           ? 'w-full h-full rounded-2xl'
-          : 'fixed bottom-5 right-5 z-[2147483647] w-[460px] max-h-[640px] rounded-[32px] overflow-hidden'
+          : 'fixed bottom-5 right-5 z-[2147483647] w-[460px] max-h-[min(640px,calc(100dvh_-_2.5rem))] rounded-[32px] overflow-hidden overscroll-contain'
       }`}
     >
       {/* Top Header */}
@@ -257,7 +260,7 @@ export default function InspectorPanel({
       </div>
 
       {/* Scrollable Content Body */}
-      <div className="flex-1 overflow-y-auto px-4 py-2 space-y-3.5 max-h-[500px]">
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-2 space-y-3.5 max-h-[500px]">
         {(activeTab === 'overview' || activeTab === 'source') && (
           <div className="space-y-3.5">
             {details.sourceFile ? (
@@ -270,9 +273,20 @@ export default function InspectorPanel({
                     <div>
                       <h3 className="font-bold text-slate-900 text-xs">Source Code Location</h3>
                       {!details.sourceExact && (
-                        <p className="text-[11px] text-amber-700">Approximate location</p>
+                        <p className="text-[11px] text-amber-700">
+                          {details.sourceStrategy === 'project-search' ? 'Likely match in local source' : 'Approximate location'}
+                        </p>
                       )}
                     </div>
+                    {activeTab === 'overview' && (!details.sourceExact || openStatus?.type === 'error') && (
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab('source')}
+                        className="ml-auto shrink-0 text-xs font-semibold text-[#0066ff] hover:underline"
+                      >
+                        Setup guide
+                      </button>
+                    )}
                   </div>
 
                   {/* File Path Row */}
@@ -358,26 +372,26 @@ export default function InspectorPanel({
                   onClick={() => setActiveTab('source')}
                   className="font-semibold text-[#0066ff] hover:underline"
                 >
-                  Setup help
+                  Setup guide
                 </button>
               </section>
             ) : (
               <div className="p-5 rounded-3xl bg-white border border-slate-100 shadow-sm text-center space-y-3">
                 <FileCode className="w-10 h-10 text-amber-500 mx-auto opacity-70" />
                 <h4 className="text-xs font-bold text-slate-800">
-                  Source Metadata Not Available
+                  Source location unavailable
                 </h4>
                 <p className="text-xs text-slate-400 leading-relaxed max-w-xs mx-auto">
-                  This element does not have DevLocator compilation metadata or React Fiber <code className="text-amber-600 font-mono">_debugSource</code> attached.
+                  {details.sourceSearchError || 'DevLocator could not find the source for this element.'}
                 </p>
-                <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200/80 text-left text-xs space-y-1.5">
-                  <span className="font-semibold text-slate-700 block">How to enable 1-click jump:</span>
-                  <p className="text-[11px] text-slate-500">Add the DevLocator plugin in your <code className="text-[#0066ff] font-mono">vite.config.js</code>:</p>
-                  <pre className="p-2 rounded-xl bg-white border border-slate-200 font-mono text-[10px] text-[#0066ff] overflow-x-auto">
-                    <code>{`import devlocator from './integrations/vite-plugin';\nexport default { plugins: [devlocator()] };`}</code>
-                  </pre>
-                </div>
               </div>
+            )}
+            {activeTab === 'source' && (!details.sourceExact || openStatus?.type === 'error') && (
+              <SourceSetupGuide
+                framework={details.framework}
+                sourceFile={details.sourceFile}
+                isLaunchError={openStatus?.type === 'error'}
+              />
             )}
           </div>
         )}

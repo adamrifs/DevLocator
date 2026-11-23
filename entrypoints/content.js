@@ -10,6 +10,7 @@ import {
   isDevLocatorElement,
 } from '../modules/element-inspector/element-details.js';
 import { getSettings, onSettingsChange } from '../utils/storage.js';
+import { getProjectSite } from '../utils/project-folders.js';
 import InspectorPanel from '../components/inspector/InspectorPanel.jsx';
 import ErrorBoundary from '../components/ui/ErrorBoundary.jsx';
 import contentCss from '../assets/content.css?inline';
@@ -210,6 +211,11 @@ export default defineContentScript({
       // Attach Shadow Root for complete CSS and DOM isolation from the page
       const shadow = host.attachShadow({ mode: 'open' });
 
+      // Keep page-level smooth-scroll handlers from intercepting native panel scrolling.
+      for (const eventType of ['wheel', 'touchmove']) {
+        shadow.addEventListener(eventType, (event) => event.stopPropagation(), { passive: true });
+      }
+
       // Inject Tailwind compiled styles into Shadow Root
       const styleEl = document.createElement('style');
       styleEl.textContent = contentCss;
@@ -344,7 +350,11 @@ export default defineContentScript({
       switch (message.type) {
         case MESSAGE_TYPES.GET_INSPECTION_STATUS: {
           const isInspecting = picker ? picker.isActive : false;
-          sendResponse({ isInspecting, hasSelectedElement: Boolean(lastSelectedDetails) });
+          sendResponse({
+            isInspecting,
+            hasSelectedElement: Boolean(lastSelectedDetails),
+            projectSite: getProjectSite(window.location.href),
+          });
           return true;
         }
 

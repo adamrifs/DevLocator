@@ -14,8 +14,10 @@ import {
 } from 'lucide-react';
 import IDESettings from '../../components/settings/IDESettings.jsx';
 import GeneralSettings from '../../components/settings/GeneralSettings.jsx';
+import SourceSetupGuide from '../../components/settings/SourceSetupGuide.jsx';
 import { getSettings, saveSettings, DEFAULT_SETTINGS } from '../../utils/storage.js';
 import { MESSAGE_TYPES } from '../../utils/messages.js';
+import { getProjectFolder, getProjectSite, saveProjectFolder } from '../../utils/project-folders.js';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('inspector'); // 'inspector' | 'settings'
@@ -25,6 +27,9 @@ export default function App() {
   const [statusMessage, setStatusMessage] = useState('Ready to inspect');
   const [selectedElement, setSelectedElement] = useState(null);
   const [copied, setCopied] = useState(false);
+  const [projectSite, setProjectSite] = useState(null);
+  const [projectFolder, setProjectFolder] = useState('');
+  const [folderStatus, setFolderStatus] = useState('');
 
   // Load saved settings
   useEffect(() => {
@@ -33,12 +38,25 @@ export default function App() {
 
   // Check current tab inspection status & selected element
   useEffect(() => {
+    async function loadProjectFolder(site) {
+      try {
+        setProjectFolder(await getProjectFolder(site));
+        setProjectSite(site);
+      } catch {
+        setFolderStatus('Could not load the project folder.');
+        setProjectSite(site);
+      }
+    }
+
     async function checkTabStatus() {
       try {
         if (typeof chrome === 'undefined' || !chrome.tabs) return;
 
         const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
         if (!tab || !tab.id) return;
+
+        const site = getProjectSite(tab.url);
+        if (site) void loadProjectFolder(site);
 
         // Check if tab URL is inspectable (cannot inspect chrome:// or edge:// pages)
         if (tab.url && (tab.url.startsWith('chrome://') || tab.url.startsWith('chrome-extension://') || tab.url.startsWith('view-source:'))) {
@@ -60,6 +78,7 @@ export default function App() {
               setIsInspecting(response.isInspecting);
               setStatusMessage(response.isInspecting ? 'Inspection active on this page' : 'Ready to inspect');
             }
+            if (!site && response?.projectSite) void loadProjectFolder(response.projectSite);
           }
         );
 
@@ -157,6 +176,22 @@ export default function App() {
   const handleUpdateSettings = async (updates) => {
     const updated = await saveSettings(updates);
     setSettings(updated);
+  };
+
+  const handleSaveProjectFolder = async (event) => {
+    event.preventDefault();
+    const folder = projectFolder.trim();
+    if (folder && !folder.startsWith('/') && !folder.startsWith('~/')) {
+      setFolderStatus('Enter an absolute Linux folder path.');
+      return;
+    }
+    try {
+      await saveProjectFolder(projectSite, folder);
+      setProjectFolder(folder);
+      setFolderStatus(folder ? 'Project folder saved.' : 'Project folder cleared.');
+    } catch {
+      setFolderStatus('Could not save the project folder.');
+    }
   };
 
   if (!settings) {
@@ -406,6 +441,30 @@ export default function App() {
                 onSelectIde={(ide) => handleUpdateSettings({ ide })}
               />
             </div>
+
+            {projectSite && (
+              <form onSubmit={handleSaveProjectFolder} className="p-3.5 rounded-2xl bg-white border border-slate-100 shadow-sm space-y-2">
+                <label htmlFor="project-folder" className="block text-xs font-bold text-slate-800">Local project folder</label>
+                <p className="text-[11px] text-slate-500 break-all">{projectSite === 'file://' ? 'Local file pages' : projectSite}</p>
+                <div className="flex items-center gap-2">
+                  <input
+                    id="project-folder"
+                    className="min-w-0 flex-1 rounded-lg border border-slate-200 p-2 text-xs"
+                    placeholder="/home/you/projects/my-site"
+                    value={projectFolder}
+                    onChange={(event) => {
+                      setProjectFolder(event.target.value);
+                      setFolderStatus('');
+                    }}
+                    spellCheck={false}
+                  />
+                  <button type="submit" className="rounded-lg bg-[#0066ff] px-3 py-2 text-xs font-semibold text-white">Save</button>
+                </div>
+                {folderStatus && <p role="status" className="text-xs text-slate-600">{folderStatus}</p>}
+              </form>
+            )}
+
+            <SourceSetupGuide framework={selectedElement?.framework} sourceFile={selectedElement?.sourceFile} />
 
             <div className="p-3.5 rounded-2xl bg-white border border-slate-100 shadow-sm space-y-3">
               <div className="text-xs font-bold uppercase tracking-wider text-slate-400 border-b border-slate-100 pb-2">

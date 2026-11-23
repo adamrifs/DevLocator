@@ -11,6 +11,7 @@ import json
 import struct
 import shutil
 import subprocess
+from project_source import find_project_source, resolve_project_root
 
 EDITOR_NAMES = {'antigravity': 'Antigravity', 'vscode': 'VS Code', 'cursor': 'Cursor'}
 WHITELISTED_IDES = EDITOR_NAMES.keys()
@@ -149,10 +150,21 @@ def sanitize_and_validate(payload):
     if ide not in WHITELISTED_IDES:
         ide = 'antigravity'
 
-    # Resolve relative path if within current working directory or user home
+    # Resolve relative source metadata against the configured project when available.
     clean_path = os.path.expanduser(file_path)
     if not os.path.isabs(clean_path):
-        clean_path = os.path.abspath(clean_path)
+        if payload.get('projectRoot'):
+            root = resolve_project_root(payload['projectRoot'])
+            if root is None:
+                return False, 'Set an existing absolute project folder in DevLocator Settings.', None
+            try:
+                resolved = (root / clean_path).resolve()
+                resolved.relative_to(root)
+            except (OSError, RuntimeError, ValueError):
+                return False, 'The source path is outside the configured project folder.', None
+            clean_path = str(resolved)
+        else:
+            clean_path = os.path.abspath(clean_path)
 
     return True, "", {
         'file': clean_path,
@@ -204,6 +216,10 @@ def main():
         message = read_message()
         if message is None:
             break
+
+        if isinstance(message, dict) and message.get('action') == 'find-source':
+            send_message(find_project_source(message))
+            continue
 
         valid, error_msg, clean_data = sanitize_and_validate(message)
         if not valid:

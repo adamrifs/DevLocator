@@ -2,6 +2,39 @@ import { getEditorCliCommand, SUPPORTED_IDES } from './ide-settings.js';
 
 export const NATIVE_HOST_NAME = 'com.devlocator.companion';
 
+async function sendNativeRequest(payload, timeout = 10000) {
+  let timeoutId;
+  try {
+    return await Promise.race([
+      chrome.runtime.sendNativeMessage(NATIVE_HOST_NAME, payload),
+      new Promise((resolve) => {
+        timeoutId = setTimeout(() => resolve({ error: 'The IDE companion did not respond in time.' }), timeout);
+      }),
+    ]);
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+export async function findProjectSource(element, pageUrl, projectRoot) {
+  if (!pageUrl || (!projectRoot && !pageUrl.startsWith('file:'))) {
+    return { error: 'Set a local project folder for this site in DevLocator Settings.' };
+  }
+
+  try {
+    const { pathname, protocol, hostname } = new URL(pageUrl);
+    const result = await sendNativeRequest({
+      action: 'find-source', element, projectRoot, pagePath: pathname,
+      localFile: protocol === 'file:' && !hostname,
+    }, 4500);
+    return result?.location || (result?.error && !result.error.startsWith("Missing or invalid 'file'"))
+      ? result
+      : { error: 'Update the Linux IDE companion to enable project source search.' };
+  } catch {
+    return { error: 'Install the Linux IDE companion to search local project files.' };
+  }
+}
+
 /**
  * Validates request payload before sending.
  * @param {object} payload
@@ -51,7 +84,7 @@ export function validateOpenPayload(payload) {
  * @param {object} payload - { file, line, column, ide }
  * @returns {Promise<{ success: boolean, method: string, message: string }>}
  */
-export async function openSourceInIDE(payload) {
+export async function openSourceInIDE(payload, projectRoot) {
   const validation = validateOpenPayload(payload);
   if (!validation.valid) {
     return {
@@ -67,13 +100,7 @@ export async function openSourceInIDE(payload) {
   // Try Chrome Native Messaging if available
   if (typeof chrome !== 'undefined' && chrome.runtime?.sendNativeMessage) {
     try {
-      let timeoutId;
-      const nativeResult = await Promise.race([
-        chrome.runtime.sendNativeMessage(NATIVE_HOST_NAME, { file, line, column, ide }),
-        new Promise((resolve) => {
-          timeoutId = setTimeout(() => resolve({ error: 'The IDE companion did not respond in time.' }), 10000);
-        }),
-      ]).finally(() => clearTimeout(timeoutId));
+      const nativeResult = await sendNativeRequest({ file, line, column, ide, projectRoot });
 
       if (nativeResult?.success) {
         return {

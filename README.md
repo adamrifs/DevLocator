@@ -96,7 +96,22 @@ This registers the native messaging host manifest `com.devlocator.companion.json
 
 ---
 
-## Vite Plugin (For React, JSX & TSX Projects)
+## Source Jump Across Web Stacks
+
+Open your development site in Chrome, then open **DevLocator → Settings → Local project folder**. Enter the absolute path to the project's source folder and click **Save**. DevLocator remembers the folder for that site's origin, including its port. The Linux native companion is required to search local files and open the result in your editor.
+
+**Shift-click** an element to open an exact source location or a unique best match from your local project in the editor. You can also inspect an element and choose **Open in** from the source card. DevLocator uses explicit source metadata and framework debug information when available. For other elements, it looks for matching tags, IDs, classes, attributes, or text in your local source. This works with static HTML, PHP and Laravel Blade, Django templates, Angular templates, Vue, Svelte, JSX, and common JavaScript DOM creation patterns. The source card labels project search results as likely matches. For a local HTML file opened directly in Chrome, enable **Allow access to file URLs** on the extension's details page to search that file without mapping a folder.
+
+For generated markup or elements with several possible matches, add explicit metadata to the rendered element during development. A project-relative path uses the folder configured above. An absolute path also works with the Linux companion.
+
+Open **Settings → Source jump setup** to choose your stack and see connection steps and an exact-line example. The inspector also shows the guide in its **Source** tab when it has an approximate location, has no location, or the editor fails to open.
+
+```html
+<button data-devlocator-file="resources/views/cart.blade.php"
+        data-devlocator-line="42" data-devlocator-column="5">Checkout</button>
+```
+
+### Vite Plugin for JSX and TSX
 
 To enable 1-click source jump with exact file and line numbers in your own Vite projects during development:
 

@@ -4,6 +4,7 @@
  */
 import { detectFramework } from '../framework-detector/detect-framework.js';
 import { findSourceLocation } from '../source-locator/find-source.js';
+import { MESSAGE_TYPES } from '../../utils/messages.js';
 
 export const DEVLOCATOR_ROOT_ID = '__devlocator-inspector-root__';
 export const DEVLOCATOR_PANEL_HOST_ID = '__devlocator-panel-host__';
@@ -332,9 +333,48 @@ export async function extractElementDetails(element) {
   const localSource = findSourceLocation(element);
   const bridgeSource = bridgeResult?.sourceLocation;
   // Prefer selected-element metadata from the page world and keep the location intact.
-  const sourceLoc = bridgeSource?.file && (bridgeSource.exact || !localSource.exact)
+  let sourceLoc = bridgeSource?.file && (bridgeSource.exact || !localSource.exact)
     ? bridgeSource
     : localSource;
+  let sourceSearchError = null;
+  if (!sourceLoc.file || sourceLoc.strategy === 'vue-file') {
+    try {
+      const sourceAttributes = {};
+      for (const name of ['id', 'name', 'data-testid', 'data-test', 'data-cy', 'aria-label']) {
+        if (attributes[name]) sourceAttributes[name] = attributes[name].slice(0, 160);
+      }
+      const ancestors = [];
+      let parent = element.parentElement;
+      while (parent && parent !== document.body && ancestors.length < 8) {
+        ancestors.push({
+          tag: parent.localName,
+          id: (parent.id || '').slice(0, 160),
+          classes: Array.from(parent.classList).slice(0, 12).map((name) => name.slice(0, 160)),
+        });
+        parent = parent.parentElement;
+      }
+      const result = await chrome.runtime.sendMessage({
+        type: MESSAGE_TYPES.FIND_PROJECT_SOURCE,
+        payload: {
+          tag: tagName,
+          attributes: sourceAttributes,
+          classes: classNames.slice(0, 24).map((name) => name.slice(0, 160)),
+          ancestors,
+          text: element.childElementCount === 0 && !element.isContentEditable
+            ? (element.textContent || '').trim().slice(0, 160)
+            : '',
+        },
+      });
+      if (result?.location && (!sourceLoc.file || result.location.file === sourceLoc.file
+        || result.location.file.endsWith(`/${sourceLoc.file}`))) {
+        sourceLoc = { ...result.location, strategy: 'project-search', verified: false, exact: false };
+      } else {
+        sourceSearchError = result?.error;
+      }
+    } catch {
+      // Keep any location already provided by the framework.
+    }
+  }
 
   // Parent & Child elements for hierarchy navigation
   const parent = element.parentElement && !isDevLocatorElement(element.parentElement) && element.parentElement !== document.documentElement
@@ -389,6 +429,7 @@ export async function extractElementDetails(element) {
     sourceStrategy: sourceLoc.strategy,
     sourceVerified: sourceLoc.verified,
     sourceExact: sourceLoc.exact === true,
+    sourceSearchError,
     confidence: frameworkInfo.confidence,
     frameworkDetails: frameworkInfo.details,
   };

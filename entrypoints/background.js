@@ -1,7 +1,8 @@
 import { defineBackground } from 'wxt/sandbox';
 import { MESSAGE_TYPES, isValidMessage } from '../utils/messages.js';
 import { getSettings } from '../utils/storage.js';
-import { openSourceInIDE } from '../modules/ide-integration/ide-connector.js';
+import { findProjectSource, openSourceInIDE } from '../modules/ide-integration/ide-connector.js';
+import { getProjectFolder, getProjectSite } from '../utils/project-folders.js';
 
 export default defineBackground(() => {
   console.log('[DevLocator] Background service worker initialized.');
@@ -71,10 +72,13 @@ export default defineBackground(() => {
       return true;
     }
 
-    if (message.type === MESSAGE_TYPES.OPEN_SOURCE_IN_IDE) {
-      openSourceInIDE(message.payload).then((result) => {
-        sendResponse(result);
-      });
+    if ([MESSAGE_TYPES.OPEN_SOURCE_IN_IDE, MESSAGE_TYPES.FIND_PROJECT_SOURCE].includes(message.type) && sender.tab) {
+      const site = getProjectSite(sender.url);
+      getProjectFolder(site).then((projectRoot) => {
+        return message.type === MESSAGE_TYPES.OPEN_SOURCE_IN_IDE
+          ? openSourceInIDE(message.payload, projectRoot)
+          : findProjectSource(message.payload, site ? sender.url : undefined, projectRoot);
+      }).then(sendResponse, () => sendResponse({ error: 'Could not read the local project settings.' }));
       return true;
     }
 
