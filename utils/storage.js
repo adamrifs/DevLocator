@@ -4,8 +4,8 @@
 
 export const DEFAULT_SETTINGS = {
   ide: 'antigravity',
-  theme: 'dark', // 'dark' | 'light'
-  highlightColor: '#f43f5e',
+  theme: 'light', // 'dark' | 'light'
+  highlightColor: '#38bdf8',
   showTooltip: true,
   shortcut: 'Hold Shift',
   activationMode: 'hold_shift', // 'hold_shift' | 'manual'

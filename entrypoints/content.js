@@ -308,7 +308,7 @@ export default defineContentScript({
             autoDock: openInIDE && inspectorAfterJump === 'dock',
             launchError,
             ide: effectiveSettings?.ide || 'antigravity',
-            theme: effectiveSettings?.theme || 'dark',
+            theme: effectiveSettings?.theme || DEFAULT_SETTINGS.theme,
             onClose: handleClose,
             onReinspect: handleReinspect,
             onSelectAncestor: handleSelectAncestor,
